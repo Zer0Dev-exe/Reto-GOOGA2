@@ -1,13 +1,9 @@
-# Ignorar toda la carpeta GOOGA2 (proyecto Unity)
+# Ignorar proyecto Unity excepto archivos de configuración
 /GOOGA2/*
-
-# Excepto la carpeta Scripts/Config
-!/GOOGA2/Assets/
+!/GOOGA2/Assets
 /GOOGA2/Assets/*
-!/GOOGA2/Assets/Scripts/
+!/GOOGA2/Assets/Scripts
 /GOOGA2/Assets/Scripts/*
-!/GOOGA2/Assets/Scripts/Config/
+!/GOOGA2/Assets/Scripts/Config
 /GOOGA2/Assets/Scripts/Config/*
-
-# Permitir solo archivos .cs en Config
 !/GOOGA2/Assets/Scripts/Config/*.cs
