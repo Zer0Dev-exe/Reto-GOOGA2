@@ -1,9 +1,69 @@
-# Ignorar proyecto Unity excepto archivos de configuración
-/GOOGA2/*
-!/GOOGA2/Assets
-/GOOGA2/Assets/*
-!/GOOGA2/Assets/Scripts
-/GOOGA2/Assets/Scripts/*
-!/GOOGA2/Assets/Scripts/Config
-/GOOGA2/Assets/Scripts/Config/*
-!/GOOGA2/Assets/Scripts/Config/*.cs
+# Standard Unity .gitignore
+
+# ----------------------------------------------------------------------------
+# 1. Ignorar carpetas del sistema y temporales (¡Muy importante!)
+# ----------------------------------------------------------------------------
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Lo mismo pero si están dentro de subcarpetas (ej. GOOGA2/Library)
+**/[Ll]ibrary/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Bb]uild/
+**/[Bb]uilds/
+**/[Ll]ogs/
+**/[Uu]ser[Ss]ettings/
+
+# ----------------------------------------------------------------------------
+# 2. Ignorar archivos generados por IDEs (Visual Studio, VS Code, Rider)
+# ----------------------------------------------------------------------------
+.vs/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ----------------------------------------------------------------------------
+# 3. Ignorar archivos basura del sistema operativo
+# ----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ----------------------------------------------------------------------------
+# 4. Archivos META (¡CRÍTICO!)
+# ----------------------------------------------------------------------------
+# Unity NECESITA los archivos .meta para saber qué son tus archivos.
+# Si los ignoras, se romperán las referencias (scripts perdidos, texturas rotas).
+# Por lo tanto, NO ignoramos los .meta por defecto.
+
+# Sin embargo, ignoramos los .meta de archivos temporales que ya ignoramos arriba
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Excepción explícita: ¡Asegurar que los .meta normales SÍ se incluyan!
+!*.meta
