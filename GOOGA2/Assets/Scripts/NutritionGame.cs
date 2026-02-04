@@ -240,13 +240,34 @@ public class NutritionGame : MonoBehaviour
         pRect.anchorMin = new Vector2(0.15f, 0.25f);
         pRect.anchorMax = new Vector2(0.85f, 0.8f);
         
-        // Texto Recetas
-        string recipesText = "<color=#8B4513><b>📋 RECETAS RECOMENDADAS:</b></color>\n\n" + 
-                             string.Join("\n", scenario.learningRecipes);
+        // Texto Recetas con Formato Rico (Estilo Nota Real)
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        sb.Append("<align=center><color=#8B4513><size=32><b>📋 MENÚ RECOMENDADO</b></size></color></align>\n\n");
+        sb.Append("<line-height=150%>"); // Más interlineado para legibilidad
+        
+        foreach (string recipe in scenario.learningRecipes)
+        {
+            // Formatear cabeceras (Desayuno, Comida, Cena)
+            string line = recipe;
+            if (line.Contains(":"))
+            {
+                string[] parts = line.Split(':');
+                // Parte 1 (Ej: Desayuno) en Rojo Oscuro y Negrita
+                // Parte 2 (La receta) en Azul Tinta
+                line = $"<color=#8B0000><b>• {parts[0]}:</b></color> <color=#1a1a2e>{parts[1]}</color>";
+            }
+            else
+            {
+                 line = $"• {line}";
+            }
+            sb.AppendLine(line);
+        }
                              
-        var tmp = CreateText(paper.transform, recipesText, new Vector2(0.5f, 0.5f), Vector2.zero, 24, new Color(0.2f, 0.2f, 0.2f), FontStyles.Normal);
+        var tmp = CreateText(paper.transform, sb.ToString(), new Vector2(0.5f, 0.5f), Vector2.zero, 22, new Color(0.1f, 0.1f, 0.2f), FontStyles.Normal);
         tmp.alignment = TextAlignmentOptions.TopLeft;
-        tmp.margin = new Vector4(40, 40, 40, 40);
+        tmp.lineSpacing = 20; // Espaciado extra
+        tmp.richText = true; // Asegurar que interpreta los colores
+        tmp.margin = new Vector4(50, 40, 50, 40);
         RectTransform tr = tmp.GetComponent<RectTransform>();
         tr.anchorMin = Vector2.zero;
         tr.anchorMax = Vector2.one;
@@ -273,6 +294,7 @@ public class NutritionGame : MonoBehaviour
         
         // Mostrador
         GameObject counterPanel = CreatePanel(cookingPanel.transform, "CounterPanel");
+        counterPanel.SetActive(true); // ¡IMPORTANTE ACTIVARLO!
         RectTransform counterRect = counterPanel.GetComponent<RectTransform>();
         counterRect.anchorMin = new Vector2(0, 0.65f);
         counterRect.anchorMax = new Vector2(1, 1);
@@ -291,18 +313,19 @@ public class NutritionGame : MonoBehaviour
         
         // Estanterías
         GameObject shelvesPanel = CreatePanel(cookingPanel.transform, "ShelvesPanel");
+        shelvesPanel.SetActive(true); // ¡IMPORTANTE ACTIVARLO!
         RectTransform shelvesRect = shelvesPanel.GetComponent<RectTransform>();
         shelvesRect.anchorMin = new Vector2(0, 0);
         shelvesRect.anchorMax = new Vector2(0.7f, 0.65f);
         
         CreateText(shelvesPanel.transform, "PRODUCTOS DISPONIBLES", new Vector2(0.5f, 0.95f), new Vector2(400, 40), 24, Color.white, FontStyles.Bold);
         
-        // Grid Productos
-        float startX = 0.15f;
-        float startY = 0.85f;
-        int cols = 3;
-        float xStep = 0.25f;
-        float yStep = 0.18f;
+        // Grid Productos (Rediseñado para 5 columnas)
+        float startX = 0.12f;
+        float startY = 0.82f;
+        int cols = 5; // Más columnas para que quepan
+        float xStep = 0.19f;
+        float yStep = 0.16f;
         
         int itemIndex = 0;
         foreach (string ingredient in availableIngredients)
@@ -313,7 +336,11 @@ public class NutritionGame : MonoBehaviour
             float x = startX + (c * xStep);
             float y = startY - (r * yStep);
             
-            CreateShopItem(shelvesPanel.transform, ingredient, new Vector2(x, y));
+            // Solo dibujar si estamos dentro del panel (limitamos filas si hay demasiados)
+            if (y > 0.1f)
+            {
+                CreateShopItem(shelvesPanel.transform, ingredient, new Vector2(x, y));
+            }
             itemIndex++;
         }
         
@@ -395,53 +422,47 @@ public class NutritionGame : MonoBehaviour
 
     private void CreateShopItem(Transform parent, string ingredient, Vector2 anchorPos)
     {
-        GameObject itemGO = new GameObject($"Item_{ingredient}");
+        GameObject itemGO = new GameObject($"Item_{ingredient}", typeof(RectTransform));
         itemGO.transform.SetParent(parent, false);
         
-        RectTransform rect = itemGO.AddComponent<RectTransform>();
+        RectTransform rect = itemGO.GetComponent<RectTransform>();
         rect.anchorMin = anchorPos;
         rect.anchorMax = anchorPos;
-        rect.sizeDelta = new Vector2(110, 110);
+        rect.sizeDelta = new Vector2(90, 110); // Más alto para el texto
         
-        // Fondo Item (Slot)
+        // Slot Background (Estilo Flat)
         Image bg = itemGO.AddComponent<Image>();
-        bg.color = new Color(1f, 1f, 1f, 0.8f); // Blanco semi
+        bg.color = new Color(0.95f, 0.95f, 0.9f); // Blanco hueso
         
-        Outline outline = itemGO.AddComponent<Outline>();
-        outline.effectColor = new Color(0.4f, 0.4f, 0.4f);
-        outline.effectDistance = new Vector2(2, -2);
-        
-        // Imagen del Ingrediente (Placeholder Pixel Art generado)
-        GameObject iconGO = new GameObject("Icon");
+        // Icono (Color procedural)
+        GameObject iconGO = new GameObject("Icon", typeof(RectTransform));
         iconGO.transform.SetParent(itemGO.transform, false);
         Image iconImg = iconGO.AddComponent<Image>();
-        iconImg.sprite = GeneratePixelSprite(GetIngredientColor(ingredient)); // Generar sprite procedural
+        iconImg.sprite = GeneratePixelSprite(GetIngredientColor(ingredient));
         
         RectTransform iconRect = iconGO.GetComponent<RectTransform>();
-        iconRect.sizeDelta = new Vector2(64, 64);
+        iconRect.anchorMin = new Vector2(0.5f, 0.7f);
+        iconRect.anchorMax = new Vector2(0.5f, 0.7f);
+        iconRect.sizeDelta = new Vector2(50, 50);
         
-        // Botón invisible para click
+        // Nombre del producto debajo (Pequeño pero legible)
+        CreateText(itemGO.transform, ingredient, new Vector2(0.5f, 0.25f), new Vector2(85, 40), 16, Color.black, FontStyles.Normal);
+        
+        // Botón invisible que cubre todo
         Button btn = itemGO.AddComponent<Button>();
         btn.targetGraphic = bg;
+        
+        ColorBlock colors = btn.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(0.9f, 1f, 0.9f); // Verde suave al pasar ratón
+        colors.pressedColor = new Color(0.7f, 0.9f, 0.7f);
+        colors.selectedColor = Color.white;
+        colors.colorMultiplier = 1f;
+        btn.colors = colors;
+        
         btn.onClick.AddListener(() => AddIngredientToCart(ingredient));
-        
-        // Precio/Nombre etiqueta
-        GameObject labelGO = new GameObject("Label");
-        labelGO.transform.SetParent(itemGO.transform, false);
-        Image labelBg = labelGO.AddComponent<Image>();
-        labelBg.color = new Color(0, 0, 0, 0.7f);
-        RectTransform labelRect = labelGO.GetComponent<RectTransform>();
-        labelRect.anchorMin = new Vector2(0, 0);
-        labelRect.anchorMax = new Vector2(1, 0.3f);
-        labelRect.offsetMin = Vector2.zero;
-        labelRect.offsetMax = Vector2.zero;
-        
-        // Nombre Texto
-        TextMeshProUGUI nameTxt = CreateText(labelGO.transform, ingredient, new Vector2(0.5f, 0.5f), Vector2.zero, 14, Color.white, FontStyles.Bold);
-        RectTransform txtRect = nameTxt.GetComponent<RectTransform>();
-        txtRect.anchorMin = Vector2.zero;
-        txtRect.anchorMax = Vector2.one;
     }
+
 
     private void AddIngredientToCart(string ingredient)
     {
@@ -491,18 +512,18 @@ public class NutritionGame : MonoBehaviour
         GameObject btnGO = new GameObject($"Btn_{text}", typeof(RectTransform));
         btnGO.transform.SetParent(parent, false);
         
-        // Sombra del botón
+        // Sombra muy sutil y pequeña (casi invisible, estilo flat)
         GameObject shadowGO = new GameObject("Shadow");
         shadowGO.transform.SetParent(btnGO.transform, false);
         Image shadowImg = shadowGO.AddComponent<Image>();
-        shadowImg.color = new Color(0f, 0f, 0f, 0.6f);
+        shadowImg.color = new Color(0f, 0f, 0f, 0.3f);
         RectTransform shadowRect = shadowGO.GetComponent<RectTransform>();
         shadowRect.anchorMin = Vector2.zero;
         shadowRect.anchorMax = Vector2.one;
-        shadowRect.sizeDelta = new Vector2(6, -6);
-        shadowRect.anchoredPosition = new Vector2(3, -3);
+        shadowRect.sizeDelta = new Vector2(2, -2); // Sombra mínima
+        shadowRect.anchoredPosition = new Vector2(2, -2);
         
-        // Borde negro
+        // Borde fino negro
         GameObject borderGO = new GameObject("Border");
         borderGO.transform.SetParent(btnGO.transform, false);
         Image borderImg = borderGO.AddComponent<Image>();
@@ -510,9 +531,9 @@ public class NutritionGame : MonoBehaviour
         RectTransform borderRect = borderGO.GetComponent<RectTransform>();
         borderRect.anchorMin = Vector2.zero;
         borderRect.anchorMax = Vector2.one;
-        borderRect.sizeDelta = new Vector2(4, -4);
+        borderRect.sizeDelta = new Vector2(2, -2); // Borde más fino (2px en lugar de 4px)
         
-        // Fondo del botón
+        // Fondo del botón plano
         GameObject bgGO = new GameObject("Background");
         bgGO.transform.SetParent(btnGO.transform, false);
         Image img = bgGO.AddComponent<Image>();
@@ -525,12 +546,12 @@ public class NutritionGame : MonoBehaviour
         Button btn = btnGO.AddComponent<Button>();
         btn.targetGraphic = img;
         
-        // Colores de interacción mejorados
+        // Colores de interacción (Flat Design)
         ColorBlock colors = btn.colors;
         colors.normalColor = Color.white;
-        colors.highlightedColor = new Color(1.2f, 1.2f, 1.2f, 1f);
-        colors.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-        colors.selectedColor = new Color(1.1f, 1.1f, 1.1f, 1f);
+        colors.highlightedColor = new Color(0.9f, 0.9f, 0.9f, 1f); // Brillo sutil
+        colors.pressedColor = new Color(0.7f, 0.7f, 0.7f, 1f); // Oscurecer al presionar
+        colors.selectedColor = Color.white;
         colors.colorMultiplier = 1f;
         btn.colors = colors;
         
@@ -541,9 +562,9 @@ public class NutritionGame : MonoBehaviour
         rect.anchorMax = pos;
         rect.sizeDelta = size;
         
-        // Texto con sombra más nítida (menos offset)
-        CreateTextWithShadow(bgGO.transform, text, new Vector2(0.5f, 0.5f), size, 24, 
-            Color.white, FontStyles.Bold, new Color(0, 0, 0, 0.6f));
+        // Texto plano sin sombra (o sombra mínima si es necesario contraste)
+        // Usamos CreateText normal en lugar de CreateTextWithShadow para un look limpio
+        CreateText(bgGO.transform, text, new Vector2(0.5f, 0.5f), size, 24, Color.white, FontStyles.Bold);
     }
 
     // Auxiliares rápidos
@@ -615,58 +636,7 @@ public class NutritionGame : MonoBehaviour
         r.offsetMax = Vector2.zero;
     }
     
-    private Sprite GenerateStarryNightBackground()
-    {
-        int width = 512;
-        int height = 512;
-        Texture2D tex = new Texture2D(width, height);
-        tex.filterMode = FilterMode.Point;
-        
-        Color[] pixels = new Color[width * height];
-        
-        // Gradiente de cielo nocturno
-        for (int y = 0; y < height; y++)
-        {
-            float t = (float)y / height;
-            Color skyColor = Color.Lerp(
-                new Color(0.05f, 0.05f, 0.15f), // Azul oscuro abajo
-                new Color(0.15f, 0.1f, 0.3f),   // Morado arriba
-                t
-            );
-            
-            for (int x = 0; x < width; x++)
-            {
-                pixels[y * width + x] = skyColor;
-                
-                // Estrellas aleatorias
-                if (Random.value > 0.995f)
-                {
-                    pixels[y * width + x] = new Color(1f, 1f, 0.9f, 1f);
-                }
-            }
-        }
-        
-        // Grid sutil
-        for (int y = 0; y < height; y += 32)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                pixels[y * width + x] = Color.Lerp(pixels[y * width + x], new Color(0.3f, 0.3f, 0.5f), 0.1f);
-            }
-        }
-        
-        for (int x = 0; x < width; x += 32)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                pixels[y * width + x] = Color.Lerp(pixels[y * width + x], new Color(0.3f, 0.3f, 0.5f), 0.1f);
-            }
-        }
-        
-        tex.SetPixels(pixels);
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
-    }
+
     
     private Sprite GenerateChalkboardBackground()
     {
@@ -1194,53 +1164,52 @@ public class NutritionGame : MonoBehaviour
 
     private Sprite GenerateStarryNightBackground()
     {
-        int width = 512;
-        int height = 512;
+        int width = 320; // Reducir resolución para look más retro
+        int height = 180;
         Texture2D tex = new Texture2D(width, height);
-        tex.filterMode = FilterMode.Bilinear; // Más suave
+        tex.filterMode = FilterMode.Point; // Pixel Perfect (Nítido)
         
         Color[] pixels = new Color[width * height];
         
-        // Gradiente de cielo nocturno profundo y suave
-        Color topColor = new Color(0.02f, 0.02f, 0.1f); // Negro azulado arriba
-        Color bottomColor = new Color(0.1f, 0.05f, 0.2f); // Morado oscuro abajo
+        // Gradiente de cielo nocturno limpio
+        Color topColor = new Color(0.05f, 0.05f, 0.15f); // Azul muy oscuro
+        Color bottomColor = new Color(0.1f, 0.05f, 0.25f); // Morado oscuro
         
         for (int y = 0; y < height; y++)
         {
             float t = (float)y / height;
+            // Dithering simple para evitar bandas feas
+            float dither = (Random.value > 0.5f) ? 0.01f : -0.01f;
             Color rowColor = Color.Lerp(bottomColor, topColor, t);
             
             for (int x = 0; x < width; x++)
             {
-                // Un poco de "ruido" sutil para que no sea plano
-                float noise = Random.Range(-0.01f, 0.01f);
                 Color c = rowColor;
-                c.r += noise; c.g += noise; c.b += noise;
+                c.r += dither; c.g += dither; c.b += dither;
                 pixels[y * width + x] = c;
             }
         }
         
-        // Estrellas (sin cuadrícula)
-        int starCount = 150;
+        // Estrellas (Píxeles individuales nítidos)
+        int starCount = 100;
         for (int i = 0; i < starCount; i++)
         {
             int x = Random.Range(1, width - 1);
             int y = Random.Range(1, height - 1);
             
-            float brightness = Random.Range(0.4f, 1f);
+            float brightness = Random.Range(0.6f, 1f);
             Color starColor = new Color(1f, 1f, 0.9f, brightness);
             
-            // Píxel central brillante
             pixels[y * width + x] = starColor;
             
-            // Halo suave
-            if (Random.value > 0.7f)
+            // Algunas estrellas más grandes (cruz)
+            if (Random.value > 0.9f)
             {
-                Color haloColor = new Color(1f, 1f, 1f, brightness * 0.3f);
-                pixels[y * width + (x + 1)] = Color.Lerp(pixels[y * width + (x + 1)], haloColor, 0.5f);
-                pixels[y * width + (x - 1)] = Color.Lerp(pixels[y * width + (x - 1)], haloColor, 0.5f);
-                pixels[(y + 1) * width + x] = Color.Lerp(pixels[(y + 1) * width + x], haloColor, 0.5f);
-                pixels[(y - 1) * width + x] = Color.Lerp(pixels[(y - 1) * width + x], haloColor, 0.5f);
+                Color faintColor = new Color(1f, 1f, 1f, brightness * 0.4f);
+                if (x+1 < width) pixels[y * width + (x + 1)] = faintColor;
+                if (x-1 > 0) pixels[y * width + (x - 1)] = faintColor;
+                if (y+1 < height) pixels[(y + 1) * width + x] = faintColor;
+                if (y-1 > 0) pixels[(y - 1) * width + x] = faintColor;
             }
         }
         
@@ -1364,42 +1333,52 @@ public class NutritionGame : MonoBehaviour
     
     private Color GetIngredientColor(string ingredient)
     {
-        // Cereales - tonos dorados
-        if (ingredient == "avena" || ingredient == "quinoa" || ingredient == "arroz" || ingredient == "pasta")
-            return new Color(0.95f, 0.75f, 0.35f, 1f);
+        // Cereales - Amarillos/Marrones
+        if (ingredient == "avena" || ingredient == "arroz" || ingredient == "arroz integral" || ingredient == "pasta" || ingredient == "pan integral" || ingredient == "pan")
+            return new Color(0.85f, 0.7f, 0.4f, 1f);
         
-        // Proteínas - tonos rosados/naranjas
-        if (ingredient == "pollo" || ingredient == "salmón" || ingredient == "merluza" || ingredient == "rodaballo")
-            return new Color(1f, 0.6f, 0.5f, 1f);
+        // Proteínas - Rojos/Naranjas/Rosas
+        if (ingredient == "pollo" || ingredient == "salmón" || ingredient == "pescado" || ingredient == "merluza" || ingredient == "ternera")
+            return new Color(1f, 0.6f, 0.6f, 1f);
+        if (ingredient == "tofu" || ingredient == "huevo")
+            return new Color(0.95f, 0.9f, 0.8f, 1f); // Blanco/Crema
         
-        // Legumbres - tonos marrones
+        // Legumbres - Marrones
         if (ingredient == "lentejas" || ingredient == "garbanzos")
+            return new Color(0.6f, 0.4f, 0.2f, 1f);
+        
+        // Verduras - Verdes
+        if (ingredient.Contains("verdura") || ingredient == "espinacas" || ingredient == "brocoli" || ingredient == "lechuga" || ingredient == "acelgas")
+            return new Color(0.2f, 0.6f, 0.2f, 1f);
+        if (ingredient == "zanahoria" || ingredient == "calabaza" || ingredient == "boniato")
+            return new Color(1f, 0.5f, 0.0f, 1f); // Naranja
+        if (ingredient == "tomate" || ingredient == "pimiento")
+            return new Color(0.9f, 0.2f, 0.2f, 1f); // Rojo
+        if (ingredient == "patata")
+            return new Color(0.9f, 0.8f, 0.5f, 1f); // Amarillo pálido
+        
+        // Frutas
+        if (ingredient == "fresas" || ingredient == "manzana" || ingredient == "cerezas")
+            return new Color(0.9f, 0.3f, 0.3f, 1f); // Rojo
+        if (ingredient == "platano" || ingredient == "limón")
+            return new Color(1f, 0.9f, 0.2f, 1f); // Amarillo fuerte
+        if (ingredient == "naranja" || ingredient == "mandarina")
+            return new Color(1f, 0.6f, 0.0f, 1f); // Naranja
+        if (ingredient == "pera" || ingredient == "uvas")
+            return new Color(0.6f, 0.8f, 0.3f, 1f); // Verde claro
+        
+        // Frutos secos
+        if (ingredient == "almendras" || ingredient == "nueces")
             return new Color(0.7f, 0.5f, 0.3f, 1f);
         
-        // Verduras - tonos verdes
-        if (ingredient == "calabaza" || ingredient == "zanahoria" || ingredient == "tomate" || 
-            ingredient == "calabacín" || ingredient == "verduras")
-            return new Color(0.5f, 0.8f, 0.4f, 1f);
-        
-        // Frutas - tonos rojos/morados
-        if (ingredient == "fresas" || ingredient == "arándanos" || ingredient == "manzana" || 
-            ingredient == "pera" || ingredient == "fruta")
-            return new Color(0.9f, 0.4f, 0.5f, 1f);
-        
-        // Frutos secos - tonos café
-        if (ingredient == "almendras" || ingredient == "nueces")
-            return new Color(0.8f, 0.6f, 0.4f, 1f);
-        
-        // Lácteos - tonos azul claro
-        if (ingredient == "queso" || ingredient == "queso fresco" || ingredient == "yogurt")
-            return new Color(0.7f, 0.85f, 1f, 1f);
-        
-        // Tubérculos - tonos naranjas
-        if (ingredient == "boniato" || ingredient == "patata")
-            return new Color(1f, 0.7f, 0.4f, 1f);
-        
-        return new Color(0.6f, 0.8f, 0.6f, 1f);
+        // Lácteos - Blanco azulado
+        if (ingredient == "queso" || ingredient == "queso fresco" || ingredient == "yogurt" || ingredient == "leche")
+            return new Color(0.9f, 0.95f, 1f, 1f);
+            
+        // Default (Gris para debug, no invisible)
+        return new Color(0.5f, 0.5f, 0.5f, 1f);
     }
+
     
     // Clase para almacenar datos de escenarios
     private class Scenario
