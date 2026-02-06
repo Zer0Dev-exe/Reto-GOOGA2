@@ -733,16 +733,39 @@ public class NutritionGame2D : MonoBehaviour
             
             Color color = GetIngredientColor(ingredientName);
             SpriteRenderer sr = item.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateIngredientSprite(color);
+            
+            // Generación o Carga de Sprite
+            sr.sprite = CreateIngredientSprite(ingredientName, color);
             sr.sortingOrder = 5;
-            item.transform.localScale = Vector3.one * 1.2f;
+
+            // AJUSTE DE ESCALA:
+            // Si es un sprite cargado (no el procedural "default"), lo escalamos para que tenga un tamaño uniforme
+            if (sr.sprite.name != "DefaultCircle")
+            {
+                float maxSize = Mathf.Max(sr.sprite.bounds.size.x, sr.sprite.bounds.size.y);
+                if (maxSize > 0)
+                {
+                    // Queremos que ocupen aprox 1.4 unidades de mundo
+                    float targetSize = 1.4f;
+                    float scaleFactor = targetSize / maxSize;
+                    item.transform.localScale = Vector3.one * scaleFactor;
+                }
+            }
+            else
+            {
+                // Escala para el círculo procedural base
+                item.transform.localScale = Vector3.one * 1.2f;
+            }
 
             // Etiqueta de precio/nombre
             GameObject label = new GameObject("PriceLabel");
             label.transform.SetParent(item.transform, false);
-            label.transform.localPosition = new Vector3(0, -0.6f, -0.1f);
+            // Ajustamos posición de la etiqueta relativa al tamaño visual
+            label.transform.localPosition = new Vector3(0, -0.6f, -0.1f); 
             label.AddComponent<SpriteRenderer>().sprite = CreateBoxSprite(120, 40, new Color(1,1,1,0.8f), true);
-            label.transform.localScale = new Vector3(0.012f, 0.012f, 1);
+            // Invertimos la escala del padre para que la etiqueta se vea siempre igual
+            float parentScale = item.transform.localScale.x;
+            label.transform.localScale = new Vector3(0.012f / parentScale, 0.012f / parentScale, 1);
 
             item.AddComponent<BoxCollider2D>();
             IngredientItem ii = item.AddComponent<IngredientItem>();
@@ -762,14 +785,109 @@ public class NutritionGame2D : MonoBehaviour
         }
     }
 
-    private Sprite CreateIngredientSprite(Color c)
+    private Sprite CreateIngredientSprite(string name, Color c)
     {
-        int size = 32;
+        // 1. INTENTAR CARGAR SPRITE PERSONALIZADO (Robustez mejorada)
+        // Normalizamos el nombre: minúsculas y sin tildes
+        string simpleName = RemoveAccents(name.ToLower());
+        
+        // Búsqueda inteligente recursiva en todo Assets si no está en la ruta estándar
+        Sprite s = FindSpriteRecursive(simpleName);
+        
+        if (s != null)
+        {
+            s.name = simpleName;
+            return s;
+        }
+
+        // 2. FALLBACK VISUAL:
+        // Si no hay imagen, creamos un círculo con el NOMBRE escrito para que se sepa qué es
+        return CreateFallbackSprite(name, c);
+    }
+
+    private Sprite FindSpriteRecursive(string filenameNoExt)
+    {
+        // Mapa de correcciones manuales (para errores de nombrado comunes)
+        if (filenameNoExt == "boniato") filenameNoExt = "bonito"; // Corrección para archivo mal nombrado
+        
+        string[] searchPatterns = new string[] 
+        { 
+            filenameNoExt + "*",          // 1. coincidencia exacta o prefijo (avena -> avena-removebg)
+            "*" + filenameNoExt + "*",    // 2. contiene el nombre (fruta -> mixFruta)
+        };
+
+        // Búsqueda de archivos
+        foreach (var pattern in searchPatterns)
+        {
+            Sprite s = TryFindSprite(pattern);
+            if (s != null) return s;
+        }
+
+        // 3. Intento en singular (fresas -> fresa)
+        if (filenameNoExt.EndsWith("s"))
+        {
+            string singular = filenameNoExt.Substring(0, filenameNoExt.Length - 1);
+            // Probamos patrones con el singular
+            if (TryFindSprite(singular + "*") != null) return TryFindSprite(singular + "*");
+            if (TryFindSprite("*" + singular + "*") != null) return TryFindSprite("*" + singular + "*");
+        }
+
+        return null;
+    }
+
+    private Sprite TryFindSprite(string pattern)
+    {
+        try 
+        {
+            // Buscamos primero en la carpeta específica Food para ser más rápidos
+            string foodPath = System.IO.Path.Combine(Application.dataPath, "Sprites", "Food");
+            if (System.IO.Directory.Exists(foodPath))
+            {
+                string[] files = System.IO.Directory.GetFiles(foodPath, pattern);
+                Sprite s = LoadSpriteFromFiles(files);
+                if (s != null) return s;
+            }
+
+            // Si falla, búsqueda profunda (Fallback)
+            string[] allFiles = System.IO.Directory.GetFiles(Application.dataPath, pattern, System.IO.SearchOption.AllDirectories);
+            return LoadSpriteFromFiles(allFiles);
+        } 
+        catch { return null; }
+    }
+
+    private Sprite LoadSpriteFromFiles(string[] files)
+    {
+        foreach (string f in files)
+        {
+            if (f.EndsWith(".meta")) continue;
+            string ext = System.IO.Path.GetExtension(f).ToLower();
+            if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+            {
+                byte[] data = System.IO.File.ReadAllBytes(f);
+                Texture2D tex = new Texture2D(2, 2);
+                if (tex.LoadImage(data))
+                {
+                    tex.filterMode = FilterMode.Point; // Cambiar a Bilinear si las imágenes son HD
+                    tex.Apply();
+                    
+                    // Importante: Crear sprite con pivote central
+                    return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+                }
+            }
+        }
+        return null;
+    }
+
+    private Sprite CreateFallbackSprite(string name, Color c)
+    {
+        int size = 64; // Más grande para que quepa texto
         Texture2D tex = new Texture2D(size, size);
         tex.filterMode = FilterMode.Point;
+        
+        // Fondo transparente
         for(int i=0; i<size*size; i++) tex.SetPixel(i%size, i/size, Color.clear);
         
-        // Círculo simple pixelado
+        // Círculo base
         float cx = size/2, cy = size/2, r = size/2 - 2;
         for(int y=0; y<size; y++)
         {
@@ -779,15 +897,67 @@ public class NutritionGame2D : MonoBehaviour
                 {
                     tex.SetPixel(x, y, c);
                 }
-                // Borde negro
-                else if(Vector2.Distance(new Vector2(x,y), new Vector2(cx,cy)) <= r + 1)
+                else if(Vector2.Distance(new Vector2(x,y), new Vector2(cx,cy)) <= r + 2)
                 {
-                    tex.SetPixel(x, y, new Color(0,0,0,0.5f));
+                    tex.SetPixel(x, y, new Color(0,0,0,0.8f));
                 }
             }
         }
+        
+        // "Escribir" la inicial (muy rudimentario, dibujando píxeles)
+        // Solo dibujamos la primera letra en blanco en el centro
+        Color textColor = Color.white;
+        char letter = char.ToUpper(name[0]);
+        DrawLetter(tex, letter, (int)cx, (int)cy, textColor);
+
         tex.Apply();
-        return Sprite.Create(tex, new Rect(0,0,size,size), new Vector2(0.5f,0.5f), 16f);
+        Sprite fallback = Sprite.Create(tex, new Rect(0,0,size,size), new Vector2(0.5f,0.5f), 16f);
+        fallback.name = "Fallback_" + name;
+        return fallback;
+    }
+
+    private void DrawLetter(Texture2D tex, char l, int cx, int cy, Color c)
+    {
+        // Matriz de puntos muy básica 5x7
+        int[,] dotMatrix = GetCharMatrix(l);
+        int scale = 4;
+        int w = 5 * scale;
+        int h = 7 * scale;
+        int startX = cx - w/2;
+        int startY = cy - h/2;
+
+        for (int y = 0; y < 7; y++)
+        {
+            for (int x = 0; x < 5; x++)
+            {
+                if (dotMatrix[6-y, x] == 1) // Invertir Y porque textura va de abajo a arriba
+                {
+                    for(int sy=0; sy<scale; sy++)
+                        for(int sx=0; sx<scale; sx++)
+                            tex.SetPixel(startX + x*scale + sx, startY + y*scale + sy, c);
+                }
+            }
+        }
+    }
+
+    private int[,] GetCharMatrix(char c)
+    {
+        // Fallback default (cuadrado sólido)
+        int[,] matrix = new int[7,5];
+        for(int y=0; y<7; y++) for(int x=0; x<5; x++) matrix[y,x] = 1;
+        
+        // Definiciones básicas
+        if (c == 'A') return new int[,] {{0,1,1,1,0},{1,0,0,0,1},{1,0,0,0,1},{1,1,1,1,1},{1,0,0,0,1},{1,0,0,0,1},{1,0,0,0,1}};
+        if (c == 'P') return new int[,] {{1,1,1,1,0},{1,0,0,0,1},{1,0,0,0,1},{1,1,1,1,0},{1,0,0,0,0},{1,0,0,0,0},{1,0,0,0,0}};
+        if (c == 'Q') return new int[,] {{0,1,1,1,0},{1,0,0,0,1},{1,0,0,0,1},{1,0,0,0,1},{1,0,1,0,1},{1,0,0,1,0},{0,1,1,0,1}};
+        if (c == 'L') return new int[,] {{1,0,0,0,0},{1,0,0,0,0},{1,0,0,0,0},{1,0,0,0,0},{1,0,0,0,0},{1,0,0,0,0},{1,1,1,1,1}};
+        
+        return matrix;
+    }
+
+    private string RemoveAccents(string text)
+    {
+        return text.Replace("á", "a").Replace("é", "e").Replace("í", "i").Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n").Replace("ü", "u");
     }
 
     private void CreateParticles(Vector3 pos, Color color)
@@ -823,9 +993,26 @@ public class NutritionGame2D : MonoBehaviour
             
             SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
             Color color = GetIngredientColor(selectedIngredients[i]);
-            sr.sprite = CreateIngredientSprite(color);
+            sr.sprite = CreateIngredientSprite(selectedIngredients[i], color);
             sr.sortingOrder = 5;
-            sr.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
+            
+            // AJUSTE DE ESCALA (Igual que en la tienda):
+            // Si es un sprite cargado o fallback textual, lo normalizamos
+            if (sr.sprite != null)
+            {
+                float maxSize = Mathf.Max(sr.sprite.bounds.size.x, sr.sprite.bounds.size.y);
+                if (maxSize > 0)
+                {
+                    // En la pantalla de resultados queremos que sean un poco más pequeños para que quepan bien
+                    float targetSize = 1.0f; 
+                    float scaleFactor = targetSize / maxSize;
+                    obj.transform.localScale = Vector3.one * scaleFactor;
+                }
+            }
+            else
+            {
+                obj.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
+            }
             
             // Etiqueta bajo el ingrediente
             GameObject textObj = new GameObject($"Label_{i}");

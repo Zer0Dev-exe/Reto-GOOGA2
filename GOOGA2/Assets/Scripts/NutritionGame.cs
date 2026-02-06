@@ -607,7 +607,11 @@ public class NutritionGame : MonoBehaviour
         
         if (backgroundType.Contains("menu"))
         {
-            bgSprite = GenerateStarryNightBackground();
+            // Cargar imagen del restaurante desde Resources
+            bgSprite = Resources.Load<Sprite>("Images/Menu_Juego");
+            // Fallback si no existe la imagen
+            if (bgSprite == null) 
+                bgSprite = GenerateStarryNightBackground();
         }
         else if (backgroundType.Contains("learning"))
         {
