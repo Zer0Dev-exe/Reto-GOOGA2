@@ -258,10 +258,23 @@ public class NutritionGame2D : MonoBehaviour
         ClearScene();
         currentPhase = GamePhase.Intro;
         CreateStarryBackground();
-        titleText.text = "<size=150><color=#FFD700>GOOGAZ</color></size>\n<size=40>EL RETO DE LA NUTRICIÓN</size>";
-        instructionsText.text = "PRESIONA <b>ENTER</b> PARA EMPEZAR";
-        instructionsText.color = new Color(1f, 0.9f, 0f);
-        instructionsText.fontSize = 40;
+        
+        // Elementos decorativos flotantes
+        for (int i = 0; i < 6; i++) {
+            GameObject dec = new GameObject("Decor");
+            dec.transform.SetParent(gameContainer.transform);
+            dec.transform.position = new Vector3(Random.Range(-8f, 8f), Random.Range(-4f, 4f), 5);
+            SpriteRenderer dsr = dec.AddComponent<SpriteRenderer>();
+            string ing = availableIngredients[Random.Range(0, availableIngredients.Length)];
+            dsr.sprite = SpriteGenerator.GenerateIngredientSprite(ing, GetIngredientColor(ing));
+            dsr.color = new Color(1, 1, 1, 0.4f);
+            dec.AddComponent<ShopkeeperAnimator>(); // Para que floten
+        }
+
+        titleText.text = "<size=180><color=#FFD700>GOOGAZ</color></size>\n<size=50><color=#FFFFFF>EL RETO DE LA NUTRICIÓN</color></size>";
+        instructionsText.text = "PRESIONA <color=#FFD700>ENTER</color> PARA EMPEZAR";
+        instructionsText.color = Color.white;
+        instructionsText.fontSize = 35;
     }
 
     private void ShowMenu()
@@ -269,17 +282,17 @@ public class NutritionGame2D : MonoBehaviour
         ClearScene();
         currentPhase = GamePhase.Menu;
         CreateStarryBackground();
-        titleText.text = "<size=80><color=#FFD700>SELECCIÓN DE MISIÓN</color></size>";
-        instructionsText.text = "ELIGE TU PRÓXIMO RETO";
-        instructionsText.color = Color.white;
-        instructionsText.fontSize = 32;
+        titleText.text = "<size=90><color=#FFD700>MENÚ DE MISIONES</color></size>";
+        instructionsText.text = "Selecciona una aventura nutricional";
+        instructionsText.color = new Color(0.8f, 0.8f, 0.8f);
+        instructionsText.fontSize = 30;
         
-        string[] labels = { "GIMNASIO", "INSTITUTO", "CASA ABUELOS" };
-        Color[] colors = { new Color(0.1f, 0.8f, 0.4f), new Color(0.2f, 0.5f, 0.9f), new Color(0.9f, 0.4f, 0.2f) };
+        string[] labels = { "ENTRENAMIENTO", "CAMPUS UNIVERSITARIO", "FIESTA FAMILIAR" };
+        Color[] colors = { new Color(0.2f, 0.7f, 0.3f), new Color(0.2f, 0.5f, 0.8f), new Color(0.8f, 0.3f, 0.2f) };
         for (int i = 0; i < scenarios.Length; i++)
         {
             int idx = i;
-            CreateButton(labels[i], new Vector3(0, 1.0f - i * 1.5f, 0), colors[i], () => StartScenario(idx));
+            CreateButton(labels[i], new Vector3(0, 1.2f - i * 1.6f, 0), colors[i], () => StartScenario(idx));
         }
     }
 
@@ -408,22 +421,24 @@ public class NutritionGame2D : MonoBehaviour
         sr.sortingOrder = 1;
         ScaleToFillScreen(noteObj, 0.75f);
 
-        // Texto DENTRO de la nota con COLOR OSCURO para contraste
+        // Texto DENTRO de la nota con estilo de manuscrito
         GameObject noteTextObj = new GameObject("NoteText");
         noteTextObj.transform.SetParent(hudObject.transform, false);
         TextMeshProUGUI txt = noteTextObj.AddComponent<TextMeshProUGUI>();
-        txt.color = new Color(0.15f, 0.1f, 0.05f); // Marrón casi negro
-        txt.fontSize = 28;
+        txt.color = new Color(0.1f, 0.08f, 0.05f);
+        txt.fontSize = 26;
         txt.alignment = TextAlignmentOptions.Top;
-        txt.text = $"\n<size=45><B>LISTA DE LA COMPRA</B></size>\n\n" +
-                   $"<size=26>{scenario.description}</size>\n\n" +
+        txt.lineSpacing = 20;
+        txt.text = $"<size=55><B>MISIÓN ASIGNADA</B></size>\n\n" +
+                   $"<size=32><i>{scenario.name}</i></size>\n\n" +
+                   $"<size=28>{scenario.description}</size>\n\n" +
                    $"<align=left><indent=15%>" +
-                   $"<B>OBJETIVOS:</B>\n" +
-                   $"<color=#224422>• {string.Join("\n• ", scenario.requiredIngredients)}</color></indent></align>";
+                   $"<B>BUSCA ESTOS ALIMENTOS:</B>\n" +
+                   $"<color=#1a3a1a>● {string.Join("\n● ", scenario.requiredIngredients)}</color></indent></align>";
         
         RectTransform rt = txt.GetComponent<RectTransform>();
         rt.sizeDelta = new Vector2(750, 550);
-        rt.anchoredPosition = new Vector2(0, 30);
+        rt.anchoredPosition = new Vector2(0, 40);
     }
 
     private void CreateShopkeeper()
