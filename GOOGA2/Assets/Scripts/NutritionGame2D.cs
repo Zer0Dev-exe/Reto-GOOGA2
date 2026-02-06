@@ -200,7 +200,7 @@ public class NutritionGame2D : MonoBehaviour
         "pollo", "salmón", "merluza", "rodaballo",
         "lentejas", "garbanzos",
         "calabaza", "zanahoria", "tomate", "calabacín", "verduras",
-        "fresas", "arándanos", "manzana", "pera", "fruta",
+        "fresas", "arándanos", "manzana", "pera", "plátano", "fruta",
         "almendras", "nueces",
         "queso", "queso fresco", "yogurt",
         "boniato", "patata"
@@ -631,11 +631,33 @@ public class NutritionGame2D : MonoBehaviour
 
     private void CreateStarryBackground()
     {
-        GameObject bg = new GameObject("BG");
+        GameObject bg = new GameObject("BG_Sky");
         bg.transform.SetParent(gameContainer.transform);
         bg.transform.position = new Vector3(0, 0, 10);
         SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
-        sr.sprite = GenerateSimpleBackground(new Color(0.05f, 0.05f, 0.15f));
+        
+        Sprite s = LoadLocalSprite("Backgrounds/space_bg.png");
+        if (s != null) {
+            sr.sprite = s;
+        } else {
+            // Fallback procedimental si no existe la imagen
+            int w = 256; int h = 256;
+            Texture2D tex = new Texture2D(w, h);
+            tex.filterMode = FilterMode.Point;
+            Color topColor = new Color(0.02f, 0.05f, 0.15f);
+            Color botColor = new Color(0.05f, 0.02f, 0.05f);
+            for (int y = 0; y < h; y++) {
+                Color rowColor = Color.Lerp(botColor, topColor, (float)y / h);
+                for (int x = 0; x < w; x++) {
+                    Color c = rowColor;
+                    if (Random.value > 0.997f) c = Color.white;
+                    tex.SetPixel(x, y, c);
+                }
+            }
+            tex.Apply();
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 10f);
+        }
+        
         sr.sortingOrder = -10;
         ScaleToFillScreen(bg, 1.0f);
     }
@@ -646,51 +668,60 @@ public class NutritionGame2D : MonoBehaviour
         bg.transform.SetParent(gameContainer.transform);
         bg.transform.position = new Vector3(0, 0, 10);
         SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
-        sr.sprite = GenerateSimpleBackground(new Color(0.15f, 0.25f, 0.2f));
+        
+        Sprite s = LoadLocalSprite("Backgrounds/learning_bg.png");
+        if (s != null) {
+            sr.sprite = s;
+        } else {
+            int w = 128; int h = 128;
+            Texture2D tex = new Texture2D(w, h);
+            Color chalkBase = new Color(0.12f, 0.2f, 0.15f);
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    float noise = Random.Range(-0.02f, 0.02f);
+                    tex.SetPixel(x, y, chalkBase + new Color(noise, noise, noise));
+                }
+            }
+            tex.Apply();
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 10f);
+        }
+        
         sr.sortingOrder = -10;
         ScaleToFillScreen(bg, 1.0f);
     }
 
     private void CreateShopBackground()
     {
-        GameObject bg = new GameObject("BG_Shop_Wall");
+        GameObject bg = new GameObject("BG_Market_Full");
         bg.transform.SetParent(gameContainer.transform);
         bg.transform.position = new Vector3(0, 0, 10);
-        SpriteRenderer srWall = bg.AddComponent<SpriteRenderer>();
+        SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
         
-        // Pared con textura de listones o papel tapiz suave
-        Texture2D wallTex = new Texture2D(32, 32);
-        Color wallColor = new Color(0.92f, 0.88f, 0.82f);
-        for (int y = 0; y < 32; y++) {
-            for (int x = 0; x < 32; x++) {
-                Color c = wallColor;
-                if (x == 0 || x == 31) c = Color.Lerp(wallColor, Color.black, 0.05f);
-                wallTex.SetPixel(x, y, c);
-            }
+        Sprite s = LoadLocalSprite("Backgrounds/market_bg.png");
+        if (s != null) {
+            sr.sprite = s;
+        } else {
+            // Fallback al anterior sistema de pared/suelo
+            sr.sprite = GenerateSimpleBackground(new Color(0.8f, 0.7f, 0.6f));
         }
-        wallTex.Apply();
-        srWall.sprite = Sprite.Create(wallTex, new Rect(0, 0, 32, 32), new Vector2(0.5f, 0.5f), 10f);
-        srWall.sortingOrder = -10;
+        
+        sr.sortingOrder = -10;
         ScaleToFillScreen(bg, 1.0f);
+    }
 
-        // Suelo con baldosas
-        GameObject floor = new GameObject("BG_Shop_Floor");
-        floor.transform.SetParent(gameContainer.transform);
-        floor.transform.position = new Vector3(0, -3.5f, 9);
-        SpriteRenderer srFloor = floor.AddComponent<SpriteRenderer>();
-        
-        Texture2D floorTex = new Texture2D(64, 64);
-        for (int y = 0; y < 64; y++) {
-            for (int x = 0; x < 64; x++) {
-                bool isTile = (x / 16 + y / 16) % 2 == 0;
-                floorTex.SetPixel(x, y, isTile ? new Color(0.8f, 0.7f, 0.6f) : new Color(0.75f, 0.65f, 0.55f));
+    private Sprite LoadLocalSprite(string path)
+    {
+        string fullPath = System.IO.Path.Combine(Application.dataPath, "Sprites", path);
+        if (System.IO.File.Exists(fullPath))
+        {
+            byte[] data = System.IO.File.ReadAllBytes(fullPath);
+            Texture2D tex = new Texture2D(2, 2);
+            if (tex.LoadImage(data))
+            {
+                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
             }
         }
-        floorTex.Apply();
-        srFloor.sprite = Sprite.Create(floorTex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 10f);
-        srFloor.sortingOrder = -9;
-        ScaleToFillScreen(floor, 1.0f);
-        floor.transform.localScale = new Vector3(floor.transform.localScale.x, 3f, 1f);
+        return null;
     }
 
     private void ScaleToFillScreen(GameObject obj, float padding = 1.0f)
@@ -742,6 +773,7 @@ public class NutritionGame2D : MonoBehaviour
         if (ingredient.Contains("verdura") || ingredient == "calabacín" || ingredient == "brócoli") return new Color(0.3f, 0.7f, 0.3f);
         if (ingredient == "tomate" || ingredient == "fresas" || ingredient == "manzana") return new Color(0.9f, 0.2f, 0.2f);
         if (ingredient == "calabaza" || ingredient == "zanahoria" || ingredient == "boniato") return new Color(1f, 0.5f, 0.1f);
+        if (ingredient == "plátano" || ingredient == "banana") return new Color(1f, 0.9f, 0.2f);
         if (ingredient == "queso" || ingredient == "yogurt" || ingredient == "leche") return new Color(0.95f, 0.95f, 1f);
         if (ingredient == "almendras" || ingredient == "nueces") return new Color(0.6f, 0.4f, 0.3f);
         return new Color(0.6f, 0.6f, 0.6f);

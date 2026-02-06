@@ -49,6 +49,10 @@ public static class SpriteGenerator
             case "nueces":
                 DrawNut(pixels, size, baseColor);
                 break;
+            case "plátano":
+            case "banana":
+                DrawBanana(pixels, size, baseColor);
+                break;
             case "queso":
             case "yogurt":
                 DrawDairy(pixels, size, baseColor);
@@ -314,6 +318,44 @@ public static class SpriteGenerator
         AddOutline(pixels, size, new Color(0.2f, 0.2f, 0.2f, 1f));
     }
     
+    private static void DrawBanana(Color[] pixels, int size, Color baseColor)
+    {
+        int centerX = size / 2;
+        int centerY = size / 2;
+        int radius = size / 3;
+        
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                // Un plátano es básicamente la intersección/sustracción de dos círculos
+                float dx = x - centerX;
+                float dy = y - centerY;
+                
+                // Círculo 1 (Cuerpo)
+                float dist1 = Mathf.Sqrt(dx * dx + (dy + radius * 0.2f) * (dy + radius * 0.2f));
+                // Círculo 2 (Sustracción para la curva)
+                float dist2 = Mathf.Sqrt(dx * dx + (dy + radius * 0.7f) * (dy + radius * 0.7f));
+                
+                if (dist1 < radius && dist2 > radius * 0.45f)
+                {
+                    // Limitar el ancho horizontal para que no sea un círculo completo
+                    if (Mathf.Abs(dx) < radius * 0.8f)
+                    {
+                        pixels[y * size + x] = baseColor;
+                    }
+                }
+            }
+        }
+        
+        // Punta del plátano (marrón)
+        int tipX = centerX + (int)(radius * 0.6f);
+        int tipY = centerY + (int)(radius * 0.1f);
+        DrawCircle(pixels, size, tipX, tipY, 5, new Color(0.3f, 0.2f, 0.1f));
+        
+        AddOutline(pixels, size, new Color(0.2f, 0.2f, 0.2f, 1f));
+    }
+
     private static void DrawGenericFood(Color[] pixels, int size, Color baseColor)
     {
         // Dibujar un círculo simple
