@@ -233,17 +233,6 @@ public class NutritionGame2D : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.R)) StartScenario(currentScenarioIndex);
             if (Input.GetKeyDown(KeyCode.M)) ShowMenu();
         }
-
-        if (Input.GetMouseButtonDown(0) && currentPhase == GamePhase.Shopping)
-        {
-            Vector2 mousePos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-            RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
-            if (hit.collider != null)
-            {
-                Ingredient2D ing = hit.collider.GetComponent<Ingredient2D>();
-                if (ing != null) SelectIngredient(ing);
-            }
-        }
     }
 
     private void StartScenario(int index)
@@ -257,43 +246,183 @@ public class NutritionGame2D : MonoBehaviour
     {
         ClearScene();
         currentPhase = GamePhase.Intro;
-        CreateStarryBackground();
         
-        // Elementos decorativos flotantes
-        for (int i = 0; i < 6; i++) {
-            GameObject dec = new GameObject("Decor");
-            dec.transform.SetParent(gameContainer.transform);
-            dec.transform.position = new Vector3(Random.Range(-8f, 8f), Random.Range(-4f, 4f), 5);
-            SpriteRenderer dsr = dec.AddComponent<SpriteRenderer>();
-            string ing = availableIngredients[Random.Range(0, availableIngredients.Length)];
-            dsr.sprite = SpriteGenerator.GenerateIngredientSprite(ing, GetIngredientColor(ing));
-            dsr.color = new Color(1, 1, 1, 0.4f);
-            dec.AddComponent<ShopkeeperAnimator>(); // Para que floten
-        }
+        GameObject bgLayer = new GameObject("Intro_BG");
+        bgLayer.transform.SetParent(gameContainer.transform);
+        bgLayer.transform.position = new Vector3(0, 0, 10);
+        SpriteRenderer sr = bgLayer.AddComponent<SpriteRenderer>();
+        
+        Sprite s = LoadLocalSprite("Backgrounds/intro_bg.png");
+        if (s != null) sr.sprite = s;
+        else CreateStarryBackground(); 
 
-        titleText.text = "<size=180><color=#FFD700>GOOGAZ</color></size>\n<size=50><color=#FFFFFF>EL RETO DE LA NUTRICIÓN</color></size>";
-        instructionsText.text = "PRESIONA <color=#FFD700>ENTER</color> PARA EMPEZAR";
+        ScaleToFillScreen(bgLayer, 1.0f);
+
+        titleText.text = ""; // Logo already in background
+        instructionsText.text = "PRESIONA <size=50><B><color=#FFD700>ENTER</color></B></size> PARA EMPEZAR";
         instructionsText.color = Color.white;
         instructionsText.fontSize = 35;
+        
+        // Efecto de sombra para el texto
+        instructionsText.outlineWidth = 0.2f;
+        instructionsText.outlineColor = Color.black;
+
+        // Fondo oscuro para el texto de instrucciones (SOLICITADO POR USUARIO)
+        GameObject instrBg = new GameObject("Intro_InstrBG");
+        instrBg.transform.SetParent(hudCanvas.transform, false);
+        // Asegurar que esté detrás del texto
+        instrBg.transform.SetSiblingIndex(instructionsText.transform.GetSiblingIndex()); 
+        
+        Image img = instrBg.AddComponent<Image>();
+        img.color = new Color(0, 0, 0, 0.85f);
+        RectTransform rt = instrBg.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(1000, 120);
+        rt.anchoredPosition = new Vector2(0, -350);
     }
 
     private void ShowMenu()
     {
         ClearScene();
         currentPhase = GamePhase.Menu;
-        CreateStarryBackground();
-        titleText.text = "<size=90><color=#FFD700>MENÚ DE MISIONES</color></size>";
-        instructionsText.text = "Selecciona una aventura nutricional";
-        instructionsText.color = new Color(0.8f, 0.8f, 0.8f);
-        instructionsText.fontSize = 30;
+        // Calibración precisa de escala y altura (Senior Polish)
+        // Posiciones un poco más altas para dejar aire al suelo
+        CreateCharacterSelectionButton(1, "Characters/adolescencia.png", scenarios[1].name.ToUpper(), new Vector3(-6, 0, 0), 7.0f, new Color(0.4f, 1f, 0.4f)); 
+        CreateCharacterSelectionButton(0, "Characters/embarazo.png", scenarios[0].name.ToUpper(), new Vector3(0, 0, 0), 7.2f, new Color(0.4f, 0.8f, 1f)); 
+        CreateCharacterSelectionButton(2, "Characters/senectud.png", scenarios[2].name.ToUpper(), new Vector3(6, 0, 0), 7.2f, new Color(1f, 0.85f, 0.4f));
+    }
+
+    private void CreateSelectionBackground()
+    {
+        // Fondo: Gradiente de estudio más contrastado
+        GameObject bg = new GameObject("SelectionBG");
+        bg.transform.SetParent(gameContainer.transform);
+        bg.transform.position = new Vector3(0, 0, 10);
+        SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
         
-        string[] labels = { "ENTRENAMIENTO", "CAMPUS UNIVERSITARIO", "FIESTA FAMILIAR" };
-        Color[] colors = { new Color(0.2f, 0.7f, 0.3f), new Color(0.2f, 0.5f, 0.8f), new Color(0.8f, 0.3f, 0.2f) };
-        for (int i = 0; i < scenarios.Length; i++)
-        {
-            int idx = i;
-            CreateButton(labels[i], new Vector3(0, 1.2f - i * 1.6f, 0), colors[i], () => StartScenario(idx));
+        int w = 2, h = 64;
+        Texture2D tex = new Texture2D(w, h);
+        tex.filterMode = FilterMode.Bilinear;
+        Color topC = new Color(0.05f, 0.05f, 0.1f);   // Casi negro azulado
+        Color botC = new Color(0.12f, 0.08f, 0.15f);  // Púrpura muy oscuro
+        for (int y = 0; y < h; y++) {
+            Color t = Color.Lerp(botC, topC, (float)y / h);
+            tex.SetPixel(0, y, t); tex.SetPixel(1, y, t);
         }
+        tex.Apply();
+        sr.sprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 10f);
+        ScaleToFillScreen(bg, 1.0f, true);
+        sr.sortingOrder = -10;
+
+        // Suelo estilizado (ocupa el tercio inferior)
+        GameObject floor = new GameObject("SelectionFloor");
+        floor.transform.SetParent(gameContainer.transform);
+        // Posicionado para que el borde superior esté abajo
+        floor.transform.position = new Vector3(0, -7, 9); 
+        SpriteRenderer srFloor = floor.AddComponent<SpriteRenderer>();
+        srFloor.sprite = CreateBoxSprite(20, 20, new Color(0.03f, 0.03f, 0.05f, 1f), false);
+        // Escalado manual para cubrir el ancho y parte del alto
+        float screenHeight = mainCamera.orthographicSize * 2.0f;
+        float screenWidth = screenHeight * Screen.width / Screen.height;
+        floor.transform.localScale = new Vector3(screenWidth * 2, 8, 1);
+        srFloor.sortingOrder = -9;
+    }
+
+    private Sprite CreateSelectionLightSprite()
+    {
+        int size = 128;
+        Texture2D tex = new Texture2D(size, size);
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                float dist = Vector2.Distance(new Vector2(x, y), new Vector2(size/2, size/2));
+                float alpha = Mathf.Clamp01(1.0f - (dist / (size/2)));
+                tex.SetPixel(x, y, new Color(1, 1, 1, alpha * alpha));
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+    }
+
+    private void CreateCharacterSelectionButton(int index, string spritePath, string label, Vector3 pos, float targetH, Color glowColor)
+    {
+        GameObject charObj = new GameObject($"Char_{index}");
+        charObj.transform.SetParent(gameContainer.transform);
+        charObj.transform.position = pos;
+        
+        SpriteRenderer sr = charObj.AddComponent<SpriteRenderer>();
+        Sprite s = LoadLocalSprite(spritePath);
+        if (s != null) {
+            s.texture.filterMode = FilterMode.Point; // ¡CRUCIAL para que el píxel art no se vea borroso!
+            sr.sprite = s;
+            float h = s.bounds.size.y;
+            float scale = targetH / h;
+            charObj.transform.localScale = new Vector3(scale, scale, 1);
+        }
+        sr.sortingOrder = 5;
+
+        // Base circular (Plataforma de luz)
+        GameObject pedestal = new GameObject("Pedestal");
+        pedestal.transform.SetParent(charObj.transform, false);
+        // Calculamos la posición base del personaje
+        float spriteBottomOffset = (sr.sprite != null) ? sr.sprite.bounds.min.y * charObj.transform.localScale.y : -targetH/2;
+        pedestal.transform.position = charObj.transform.position + new Vector3(0, spriteBottomOffset, 0.5f);
+        pedestal.transform.localScale = new Vector3(4.0f, 1.2f, 1);
+        SpriteRenderer psr = pedestal.AddComponent<SpriteRenderer>();
+        psr.sprite = CreateSelectionLightSprite(); // El mismo gradiente circular
+        psr.color = new Color(glowColor.r, glowColor.g, glowColor.b, 0.2f);
+        psr.sortingOrder = 4;
+
+        // Borde de color (Glow mejorado)
+        GameObject glow = new GameObject("Glow");
+        glow.transform.SetParent(charObj.transform, false);
+        glow.transform.localPosition = Vector3.zero;
+        SpriteRenderer gsr = glow.AddComponent<SpriteRenderer>();
+        gsr.sprite = sr.sprite;
+        gsr.color = new Color(glowColor.r, glowColor.g, glowColor.b, 0.6f);
+        gsr.sortingOrder = 6; // Por delante para efecto aura
+        glow.transform.localScale = Vector3.one * 1.05f;
+        glow.SetActive(false);
+
+        // Click logic
+        charObj.AddComponent<BoxCollider2D>().size = sr.sprite != null ? sr.sprite.bounds.size : Vector2.one;
+        MenuButton mb = charObj.AddComponent<MenuButton>();
+        mb.onClick = () => StartScenario(index);
+        mb.hoverGlow = glow;
+
+        // UI Label: Eliminado fondo feo, añadido borde al texto (Outline)
+        GameObject labelBg = new GameObject($"LabelBg_{index}");
+        labelBg.transform.SetParent(hudObject.transform, false);
+        // Sin imagen de fondo (transparente)
+        
+        GameObject textObj = new GameObject($"LabelText_{index}");
+        textObj.transform.SetParent(labelBg.transform, false);
+        TextMeshProUGUI txt = textObj.AddComponent<TextMeshProUGUI>();
+        txt.text = label;
+        txt.fontSize = 22;
+        txt.alignment = TextAlignmentOptions.Center;
+        txt.color = new Color(1f, 0.9f, 0.7f);
+        txt.fontStyle = FontStyles.Bold;
+        txt.enableWordWrapping = true;
+        
+        // BORDE DEL TEXTO (OUTLINE) PARA QUE SE LEA SIN CAJA
+        txt.outlineWidth = 0.3f;
+        txt.outlineColor = new Color(0,0,0,1f); // Borde negro fuerte
+        
+        // Sombra suave para separar del fondo
+        txt.fontSharedMaterial.EnableKeyword("UNDERLAY_ON");
+        txt.fontSharedMaterial.SetFloat("_UnderlayOffsetX", 1f);
+        txt.fontSharedMaterial.SetFloat("_UnderlayOffsetY", -1f);
+        txt.fontSharedMaterial.SetFloat("_UnderlayDilate", 1f);
+        txt.fontSharedMaterial.SetFloat("_UnderlaySoftness", 0.5f);
+        
+        RectTransform rtb = labelBg.AddComponent<RectTransform>();
+        rtb.sizeDelta = new Vector2(300, 80);
+        
+        RectTransform rtText = txt.GetComponent<RectTransform>();
+        rtText.sizeDelta = new Vector2(280, 70);
+        
+        // Posicionamiento HUD vinculado al mundo
+        Vector3 screenPos = mainCamera.WorldToScreenPoint(pos + Vector3.down * 4.2f);
+        rtb.position = screenPos;
     }
 
     private void ShowLearning()
@@ -304,14 +433,31 @@ public class NutritionGame2D : MonoBehaviour
         
         Scenario s = scenarios[currentScenarioIndex];
         
-        titleText.text = $"MISIÓN: {s.name.ToUpper()}";
-        titleText.fontSize = 45;
+        // ELIMINADO EL TÍTULO DEL HUD PARA EVITAR SOLAPAMIENTO Y LIMPIAR LA VISTA
+        titleText.text = ""; 
         
         CreateLearningNote(s);
 
-        instructionsText.text = "PRESIONA <b>ENTER</b> PARA IR A LA TIENDA";
+        instructionsText.text = "PRESIONA <color=#FFD700><b>ENTER</b></color> PARA ACEPTAR LA MISIÓN";
         instructionsText.color = Color.white;
-        instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -420);
+        instructionsText.fontSize = 32; // Un poco más grande
+        
+        // Fondo oscuro "Cuadrado" para que se vea bien
+        GameObject instrBg = new GameObject("InstrBG");
+        instrBg.transform.SetParent(hudCanvas.transform, false);
+        
+        Image img = instrBg.AddComponent<Image>();
+        img.color = new Color(0.1f, 0.1f, 0.1f, 0.95f); // Casi opaco
+        RectTransform rt = instrBg.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(900, 80);
+        rt.anchoredPosition = new Vector2(0, -480);
+        
+        // Aseguramos que la instrucción de ENTER quede por encima del overlay
+        instructionsText.transform.SetAsLastSibling();
+        
+        // Movemos las instrucciones más abajo para que no tapen el papel
+        RectTransform rtInstr = instructionsText.GetComponent<RectTransform>();
+        rtInstr.anchoredPosition = new Vector2(0, -480);
     }
 
     private void ShowShopping()
@@ -413,32 +559,135 @@ public class NutritionGame2D : MonoBehaviour
 
     private void CreateLearningNote(Scenario scenario)
     {
-        GameObject noteObj = new GameObject("LearningNote");
-        noteObj.transform.SetParent(gameContainer.transform);
-        noteObj.transform.position = new Vector3(0, 0, 5);
-        SpriteRenderer sr = noteObj.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateBoxSprite(1000, 750, new Color(0.98f, 0.92f, 0.75f), true);
-        sr.sortingOrder = 1;
-        ScaleToFillScreen(noteObj, 0.75f);
-
-        // Texto DENTRO de la nota con estilo de manuscrito
-        GameObject noteTextObj = new GameObject("NoteText");
-        noteTextObj.transform.SetParent(hudObject.transform, false);
-        TextMeshProUGUI txt = noteTextObj.AddComponent<TextMeshProUGUI>();
-        txt.color = new Color(0.1f, 0.08f, 0.05f);
-        txt.fontSize = 26;
-        txt.alignment = TextAlignmentOptions.Top;
-        txt.lineSpacing = 20;
-        txt.text = $"<size=55><B>MISIÓN ASIGNADA</B></size>\n\n" +
-                   $"<size=32><i>{scenario.name}</i></size>\n\n" +
-                   $"<size=28>{scenario.description}</size>\n\n" +
-                   $"<align=left><indent=15%>" +
-                   $"<B>BUSCA ESTOS ALIMENTOS:</B>\n" +
-                   $"<color=#1a3a1a>● {string.Join("\n● ", scenario.requiredIngredients)}</color></indent></align>";
+        // 1. Fondo oscuro de enfoque (Overlay) - AHORA ESTRUCTURA UI
+        GameObject overlay = new GameObject("UI_Overlay");
+        overlay.transform.SetParent(hudCanvas.transform, false);
+        // Ponerlo al principio para que esté detrás de todo en el HUD
+        overlay.transform.SetSiblingIndex(0); 
         
-        RectTransform rt = txt.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(750, 550);
-        rt.anchoredPosition = new Vector2(0, 40);
+        Image imgOverlay = overlay.AddComponent<Image>();
+        imgOverlay.color = new Color(0,0,0,0.85f);
+        RectTransform rtOverlay = overlay.GetComponent<RectTransform>();
+        rtOverlay.anchorMin = Vector2.zero;
+        rtOverlay.anchorMax = Vector2.one; // Estirar a toda la pantalla
+        rtOverlay.sizeDelta = Vector2.zero;
+
+        // 2. La Hoja de Papel (UI Image) - DESPLAZADA A LA DERECHA
+        GameObject noteObj = new GameObject("UI_MissionPaper");
+        noteObj.transform.SetParent(hudCanvas.transform, false);
+        noteObj.transform.SetSiblingIndex(1);
+        
+        Image imgPaper = noteObj.AddComponent<Image>();
+        imgPaper.sprite = CreateBoxSprite(800, 900, new Color(0.96f, 0.96f, 0.94f), true);
+        
+        RectTransform rtPaper = noteObj.GetComponent<RectTransform>();
+        rtPaper.anchoredPosition = new Vector2(350, 20); // Desplazado a la derecha
+        rtPaper.sizeDelta = new Vector2(700, 850); // Un poco más estrecho
+
+        // 2.5 EL COCINERO OAK (UI Image) - A LA IZQUIERDA
+        GameObject oakObj = new GameObject("UI_Boss");
+        oakObj.transform.SetParent(hudCanvas.transform, false);
+        oakObj.transform.SetSiblingIndex(2); // Por encima del papel si se solapan
+        
+        Image imgOak = oakObj.AddComponent<Image>();
+        imgOak.sprite = CreateCocineroOakSprite();
+        imgOak.preserveAspect = true;
+        
+        RectTransform rtOak = oakObj.GetComponent<RectTransform>();
+        rtOak.anchorMin = new Vector2(0.5f, 0.5f);
+        rtOak.anchorMax = new Vector2(0.5f, 0.5f);
+        rtOak.anchoredPosition = new Vector2(-450, -50); // A la izquierda
+        rtOak.sizeDelta = new Vector2(500, 800);
+
+        // 3. El Clip metálico superior (UI Image)
+        GameObject clip = new GameObject("UI_MetalClip");
+        clip.transform.SetParent(noteObj.transform, false);
+        Image imgClip = clip.AddComponent<Image>();
+        imgClip.sprite = CreateBoxSprite(300, 60, new Color(0.3f, 0.35f, 0.4f), true);
+        
+        RectTransform rtClip = clip.GetComponent<RectTransform>();
+        rtClip.anchoredPosition = new Vector2(0, 430); // Ajustado al nuevo alto
+        rtClip.sizeDelta = new Vector2(300, 60);
+
+        // 4. Contenido del Texto (Ajustado tamaños para que quepa perfecto)
+        GameObject noteTextObj = new GameObject("MissionContent");
+        noteTextObj.transform.SetParent(noteObj.transform, false);
+        TextMeshProUGUI txt = noteTextObj.AddComponent<TextMeshProUGUI>();
+        txt.alignment = TextAlignmentOptions.TopLeft;
+        txt.enableWordWrapping = true;
+        
+        // Construimos el string con estilo limpio y jerarquía
+        string content = "";
+        
+        // Cabecera Institucional
+        content += $"<align=center><size=32><B><color=#2C3E50>CONFIDENCIAL</color></B></size></align>\n";
+        content += $"<align=center><size=14><color=#7F8C8D>• MINISTERIO DE NUTRICIÓN GOOGAZ •</color></size></align>\n";
+        content += $"<align=center><size=24><color=#BDC3C7>_______________________________________</color></size></align>\n\n";
+
+        // Perfil del Paciente
+        content += $"<size=18><color=#95A5A6>SUJETO DE ESTUDIO:</color></size>\n";
+        content += $"<size=28><B><color=#E67E22>{scenario.name.ToUpper()}</color></B></size>\n\n";
+
+        // Objetivo
+        content += $"<size=18><color=#95A5A6>OBJETIVO CLÍNICO:</color></size>\n";
+        content += $"<size=22><color=#34495E>{scenario.description}</color></size>\n\n";
+        content += $"<align=center><size=24><color=#BDC3C7>_______________________________________</color></size></align>\n\n";
+
+        // Lista de Compra (Diseño Checklist Visual)
+        content += $"<size=22><B><color=#27AE60>PROTOCOLOS NUTRICIONALES:</color></B></size>\n";
+        content += $"<color=#2C3E50><line-height=130%>";
+        foreach(var item in scenario.requiredIngredients)
+        {
+            content += $"  <b>[ ]</b> <size=26>{item.ToUpper()}</size>\n"; 
+        }
+        content += $"</color>";
+
+        // Nota: He quitado el sello de texto para ponerlo como objeto UI abajo
+
+        txt.text = content;
+        
+        // Ajustamos la configuración física del texto para el nuevo ancho
+        RectTransform rtTxt = txt.GetComponent<RectTransform>();
+        rtTxt.anchorMin = Vector2.zero; rtTxt.anchorMax = Vector2.one;
+        rtTxt.sizeDelta = new Vector2(-80, -100); // Margen interno más amplio
+        rtTxt.anchoredPosition = new Vector2(0, -20);
+        
+        // 5. SELLO VISUAL "PRIORIDAD ALTA" (Elemento UI Rotado)
+        GameObject stampObj = new GameObject("UI_Stamp");
+        stampObj.transform.SetParent(noteObj.transform, false);
+        
+        // Caja Roja del Sello
+        Image stampImg = stampObj.AddComponent<Image>();
+        stampImg.color = new Color(0.8f, 0.2f, 0.2f, 0.9f); // Rojo sólido
+        RectTransform rtStamp = stampObj.GetComponent<RectTransform>();
+        rtStamp.sizeDelta = new Vector2(280, 70);
+        rtStamp.anchoredPosition = new Vector2(180, -350); // Esquina inferior derecha
+        rtStamp.localRotation = Quaternion.Euler(0, 0, 15); // Rotado
+        
+        // Texto del Sello
+        GameObject stampTxtObj = new GameObject("StampText");
+        stampTxtObj.transform.SetParent(stampObj.transform, false);
+        TextMeshProUGUI stampTxt = stampTxtObj.AddComponent<TextMeshProUGUI>();
+        stampTxt.text = "PRIORIDAD ALTA";
+        stampTxt.fontSize = 28;
+        stampTxt.fontStyle = FontStyles.Bold;
+        stampTxt.alignment = TextAlignmentOptions.Center;
+        stampTxt.color = Color.white;
+        stampTxtObj.GetComponent<RectTransform>().sizeDelta = new Vector2(280, 70);
+        
+        // Aseguramos que la instrucción de ENTER quede por encima del overlay
+        instructionsText.transform.SetAsLastSibling();
+        
+        // Movemos las instrucciones más abajo para que no tapen el papel
+        RectTransform rtInstr = instructionsText.GetComponent<RectTransform>();
+        rtInstr.anchoredPosition = new Vector2(0, -480);
+        
+        // Y su fondo también
+        Transform instrBg = hudCanvas.transform.Find("InstrBG");
+        if(instrBg != null) {
+            instrBg.SetAsLastSibling();
+            instrBg.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -480);
+        }
     }
 
     private void CreateShopkeeper()
@@ -464,77 +713,98 @@ public class NutritionGame2D : MonoBehaviour
 
     private void CreateShopShelves()
     {
+        // En lugar de crear estanterías geométricas, usamos las del fondo para posicionar ingredientes
+        float[] shelfHeights = { 1.8f, 0.1f, -1.5f, -3.2f };
         int cols = 6;
-        float startX = -5.5f;
-        float startY = 3.2f;
+        float startX = -3.5f; 
         
-        // Crear estanterías visuales con profundidad
-        for (int r = 0; r < 4; r++)
+        int ingredientIndex = 0;
+        foreach (var ingredientName in availableIngredients)
         {
-            float shelfY = startY - r * 1.6f - 0.7f;
+            int row = ingredientIndex / cols;
+            int col = ingredientIndex % cols;
+            if (row >= shelfHeights.Length) break;
+
+            Vector3 pos = new Vector3(startX + col * 1.8f, shelfHeights[row], 0);
             
-            // Sombra bajo la estantería
-            GameObject shadow = new GameObject("ShelfShadow");
-            shadow.transform.SetParent(gameContainer.transform);
-            shadow.transform.position = new Vector3(0, shelfY - 0.05f, 6);
-            SpriteRenderer shadowSr = shadow.AddComponent<SpriteRenderer>();
-            shadowSr.sprite = CreateBoxSprite(3000, 40, new Color(0, 0, 0, 0.3f), false);
-            shadowSr.sortingOrder = 0;
-            ScaleToFillScreen(shadow, 1.2f);
-            shadow.transform.localScale = new Vector3(shadow.transform.localScale.x, 0.3f, 1);
+            GameObject item = new GameObject($"Item_{ingredientName}");
+            item.transform.SetParent(gameContainer.transform);
+            item.transform.position = pos;
+            
+            Color color = GetIngredientColor(ingredientName);
+            SpriteRenderer sr = item.AddComponent<SpriteRenderer>();
+            sr.sprite = CreateIngredientSprite(color);
+            sr.sortingOrder = 5;
+            item.transform.localScale = Vector3.one * 1.2f;
 
-            // Estantería principal
-            GameObject shelf = new GameObject("Shelf");
-            shelf.transform.SetParent(gameContainer.transform);
-            shelf.transform.position = new Vector3(0, shelfY, 5);
-            SpriteRenderer sr = shelf.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateBoxSprite(3000, 30, new Color(0.45f, 0.28f, 0.15f), true);
-            sr.sortingOrder = 1;
-            ScaleToFillScreen(shelf, 1.2f);
-            shelf.transform.localScale = new Vector3(shelf.transform.localScale.x, 0.2f, 1);
-        }
+            // Etiqueta de precio/nombre
+            GameObject label = new GameObject("PriceLabel");
+            label.transform.SetParent(item.transform, false);
+            label.transform.localPosition = new Vector3(0, -0.6f, -0.1f);
+            label.AddComponent<SpriteRenderer>().sprite = CreateBoxSprite(120, 40, new Color(1,1,1,0.8f), true);
+            label.transform.localScale = new Vector3(0.012f, 0.012f, 1);
 
-        for (int i = 0; i < availableIngredients.Length; i++)
-        {
-            int r = i / cols;
-            int c = i % cols;
-            CreateIngredient2D(availableIngredients[i], new Vector3(startX + c * 2.2f, startY - r * 1.6f, 0));
+            item.AddComponent<BoxCollider2D>();
+            IngredientItem ii = item.AddComponent<IngredientItem>();
+            ii.ingredientName = ingredientName;
+            ii.color = color;
+            ii.onSelect = (ing) => {
+                if (!selectedIngredients.Contains(ing.ingredientName)) {
+                    selectedIngredients.Add(ing.ingredientName);
+                    scoreText.text = $"CESTA: {selectedIngredients.Count}";
+                    CreateParticles(pos, ing.color);
+                    // Feedback visual
+                    ing.transform.localScale *= 1.2f;
+                }
+            };
+
+            ingredientIndex++;
         }
     }
 
-    private void CreateIngredient2D(string name, Vector3 pos)
+    private Sprite CreateIngredientSprite(Color c)
     {
-        GameObject obj = new GameObject($"Ing_{name}");
-        obj.transform.SetParent(gameContainer.transform);
-        obj.transform.position = pos;
-        SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
-        Color color = GetIngredientColor(name);
-        sr.sprite = SpriteGenerator.GenerateIngredientSprite(name, color);
-        sr.sortingOrder = 10;
-        sr.transform.localScale = new Vector3(0.5f, 0.5f, 1);
-        obj.AddComponent<CircleCollider2D>().radius = 0.6f;
-        Ingredient2D ing = obj.AddComponent<Ingredient2D>();
-        ing.ingredientName = name;
-        ing.sprite = sr.sprite;
-        ing.baseColor = color;
+        int size = 32;
+        Texture2D tex = new Texture2D(size, size);
+        tex.filterMode = FilterMode.Point;
+        for(int i=0; i<size*size; i++) tex.SetPixel(i%size, i/size, Color.clear);
+        
+        // Círculo simple pixelado
+        float cx = size/2, cy = size/2, r = size/2 - 2;
+        for(int y=0; y<size; y++)
+        {
+            for(int x=0; x<size; x++)
+            {
+                if(Vector2.Distance(new Vector2(x,y), new Vector2(cx,cy)) <= r)
+                {
+                    tex.SetPixel(x, y, c);
+                }
+                // Borde negro
+                else if(Vector2.Distance(new Vector2(x,y), new Vector2(cx,cy)) <= r + 1)
+                {
+                    tex.SetPixel(x, y, new Color(0,0,0,0.5f));
+                }
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0,0,size,size), new Vector2(0.5f,0.5f), 16f);
     }
 
-    private void SelectIngredient(Ingredient2D ingredient)
+    private void CreateParticles(Vector3 pos, Color color)
     {
-        if (!selectedIngredients.Contains(ingredient.ingredientName))
+        for (int i = 0; i < 8; i++)
         {
-            selectedIngredients.Add(ingredient.ingredientName);
-            ingredient.OnClick();
-            CreateSelectionParticles(ingredient.transform.position);
-            GameObject iconObj = new GameObject("CartItem");
-            iconObj.transform.SetParent(gameContainer.transform);
-            SpriteRenderer sr = iconObj.AddComponent<SpriteRenderer>();
-            sr.sprite = ingredient.sprite;
-            sr.color = ingredient.baseColor;
-            sr.sortingOrder = 20;
-            iconObj.transform.position = new Vector3(7.5f, 3.5f - selectedIngredients.Count * 0.4f, 0);
-            iconObj.transform.localScale = new Vector3(0.3f, 0.3f, 1);
-            scoreText.text = $"CESTA: {selectedIngredients.Count}";
+            GameObject p = new GameObject("Particle");
+            p.transform.SetParent(gameContainer.transform);
+            p.transform.position = pos;
+            SpriteRenderer sr = p.AddComponent<SpriteRenderer>();
+            sr.sprite = CreateBoxSprite(8, 8, color, false);
+            sr.sortingOrder = 100;
+            p.transform.localScale = Vector3.one * Random.Range(0.5f, 1.0f);
+            
+            ParticleController pc = p.AddComponent<ParticleController>();
+            pc.velocity = new Vector2(Random.Range(-3f, 3f), Random.Range(2f, 5f));
+            pc.lifetime = 0.6f;
         }
     }
 
@@ -553,7 +823,7 @@ public class NutritionGame2D : MonoBehaviour
             
             SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
             Color color = GetIngredientColor(selectedIngredients[i]);
-            sr.sprite = SpriteGenerator.GenerateIngredientSprite(selectedIngredients[i], color);
+            sr.sprite = CreateIngredientSprite(color);
             sr.sortingOrder = 5;
             sr.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
             
@@ -582,6 +852,16 @@ public class NutritionGame2D : MonoBehaviour
             hudObject = new GameObject("HUD_Dynamic_Content");
             if (hudCanvas != null) hudObject.transform.SetParent(hudCanvas.transform, false);
         }
+
+        // Limpieza IMPORTANTE de elementos UI persistentes de la fase anterior
+        if (hudCanvas != null) {
+            Transform tOver = hudCanvas.transform.Find("UI_Overlay"); if(tOver) Destroy(tOver.gameObject);
+            Transform tPaper = hudCanvas.transform.Find("UI_MissionPaper"); if(tPaper) Destroy(tPaper.gameObject);
+            Transform tBoss = hudCanvas.transform.Find("UI_Boss"); if(tBoss) Destroy(tBoss.gameObject);
+            Transform tInstr = hudCanvas.transform.Find("InstrBG"); if(tInstr) Destroy(tInstr.gameObject);
+            Transform tIntroInstr = hudCanvas.transform.Find("Intro_InstrBG"); if(tIntroInstr) Destroy(tIntroInstr.gameObject);
+        }
+
         if (titleText != null) titleText.text = "";
         if (instructionsText != null) instructionsText.text = "";
         if (scoreText != null) scoreText.gameObject.SetActive(false);
@@ -608,25 +888,58 @@ public class NutritionGame2D : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
     }
 
+    private Sprite CreateCocineroOakSprite()
+    {
+        // INTENTO DE CARGAR EL SPRITE REAL DEL USUARIO
+        // El usuario debe guardar la imagen como "cocinero_oak.png" en Assets/Resources/Characters o la carpeta de carga
+        Sprite s = LoadLocalSprite("Characters/cocinero_oak.png");
+        if (s != null) {
+            s.texture.filterMode = FilterMode.Point;
+            return s;
+        }
+
+        // Fallback transparente si no está la imagen aún (para no mostrar el "monigote de minecraft")
+        Texture2D tex = new Texture2D(128, 256);
+        return Sprite.Create(tex, new Rect(0,0,128,256), new Vector2(0.5f,0.5f));
+    }
+
     private Sprite CreateShopkeeperSprite()
     {
-        Texture2D tex = new Texture2D(64, 64);
+        int size = 64;
+        Texture2D tex = new Texture2D(size, size);
         tex.filterMode = FilterMode.Point;
-        for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++) tex.SetPixel(x, y, Color.clear);
         
-        // Cuerpo / Camisa
-        for (int y = 10; y < 40; y++) for (int x = 15; x < 49; x++) tex.SetPixel(x, y, new Color(0.15f, 0.2f, 0.4f));
-        // Delantal
-        for (int y = 5; y < 35; y++) for (int x = 20; x < 44; x++) tex.SetPixel(x, y, Color.white);
-        // Cara
-        for (int y = 40; y < 60; y++) for (int x = 22; x < 42; x++) tex.SetPixel(x, y, new Color(0.95f, 0.8f, 0.7f));
-        // Pelo
-        for (int y = 55; y < 62; y++) for (int x = 20; x < 44; x++) tex.SetPixel(x, y, new Color(0.2f, 0.15f, 0.1f));
+        // Limpiar transparente
+        for(int i=0; i<size*size; i++) tex.SetPixel(i%size, i/size, Color.clear);
+
+        Color skin = new Color(0.85f, 0.65f, 0.55f);
+        Color hair = new Color(0.2f, 0.15f, 0.1f);
+        Color apron = new Color(0.3f, 0.5f, 0.3f);
+        Color shirt = Color.white;
+
+        // Cabeza
+        DrawPixelRect(tex, 24, 40, 16, 16, skin);
+        // Cabello/Gorra
+        DrawPixelRect(tex, 22, 52, 20, 6, hair);
         // Ojos
-        tex.SetPixel(28, 50, Color.black); tex.SetPixel(36, 50, Color.black);
-        
+        tex.SetPixel(28, 48, Color.black); tex.SetPixel(36, 48, Color.black);
+        // Cuerpo
+        DrawPixelRect(tex, 20, 15, 24, 25, shirt);
+        // Delantal
+        DrawPixelRect(tex, 22, 15, 20, 20, apron);
+        // Brazos
+        DrawPixelRect(tex, 16, 25, 6, 12, skin);
+        DrawPixelRect(tex, 42, 25, 6, 12, skin);
+
         tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 16f);
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 10f);
+    }
+
+    private void DrawPixelRect(Texture2D tex, int x, int y, int w, int h, Color c)
+    {
+        for (int i = x; i < x + w; i++)
+            for (int j = y; j < y + h; j++)
+                tex.SetPixel(i, j, c);
     }
 
     private void CreateStarryBackground()
@@ -718,24 +1031,38 @@ public class NutritionGame2D : MonoBehaviour
             Texture2D tex = new Texture2D(2, 2);
             if (tex.LoadImage(data))
             {
+                tex.filterMode = FilterMode.Point;
+                tex.Apply();
                 return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
             }
         }
         return null;
     }
 
-    private void ScaleToFillScreen(GameObject obj, float padding = 1.0f)
+    private void ScaleToFillScreen(GameObject obj, float padding = 1.0f, bool preserveAspect = true)
     {
         SpriteRenderer sr = obj.GetComponent<SpriteRenderer>();
         if (sr == null || sr.sprite == null) return;
 
-        float height = mainCamera.orthographicSize * 2.0f;
-        float width = height * Screen.width / Screen.height;
+        float screenHeight = mainCamera.orthographicSize * 2.0f;
+        float screenWidth = screenHeight * Screen.width / Screen.height;
+        float spriteWidth = sr.sprite.bounds.size.x;
+        float spriteHeight = sr.sprite.bounds.size.y;
 
-        obj.transform.localScale = new Vector3(
-            (width / sr.sprite.bounds.size.x) * padding,
-            (height / sr.sprite.bounds.size.y) * padding,
-            1);
+        if (preserveAspect)
+        {
+            float scaleX = screenWidth / spriteWidth;
+            float scaleY = screenHeight / spriteHeight;
+            float finalScale = Mathf.Max(scaleX, scaleY) * padding;
+            obj.transform.localScale = new Vector3(finalScale, finalScale, 1);
+        }
+        else
+        {
+            obj.transform.localScale = new Vector3(
+                (screenWidth / spriteWidth) * padding,
+                (screenHeight / spriteHeight) * padding,
+                1);
+        }
     }
 
     private Sprite GenerateSimpleBackground(Color c)
@@ -821,8 +1148,29 @@ public class MenuButton : MonoBehaviour
     public System.Action onClick;
     public GameObject buttonText;
     public Color originalColor;
-    private void OnMouseEnter() { transform.localScale = new Vector3(1.1f, 1.1f, 1); }
-    private void OnMouseExit() { transform.localScale = Vector3.one; }
+    public GameObject hoverGlow;
+    private Vector3 basePos;
+    private bool isHovered = false;
+
+    void Start() { basePos = transform.position; }
+
+    private void Update() {
+        if (isHovered) {
+            // Animación suave de flotación sin romper los píxeles (sin escala)
+            transform.position = basePos + new Vector3(0, Mathf.Sin(Time.time * 8) * 0.15f, 0);
+        } else {
+            transform.position = Vector3.Lerp(transform.position, basePos, Time.deltaTime * 10);
+        }
+    }
+
+    private void OnMouseEnter() { 
+        isHovered = true;
+        if (hoverGlow != null) hoverGlow.SetActive(true);
+    }
+    private void OnMouseExit() { 
+        isHovered = false;
+        if (hoverGlow != null) hoverGlow.SetActive(false);
+    }
     private void OnMouseDown() { onClick?.Invoke(); }
 }
 
@@ -842,5 +1190,17 @@ public class ParticleController : MonoBehaviour
         if (t > lifetime) { Destroy(gameObject); return; }
         transform.position += (Vector3)velocity * Time.deltaTime;
         velocity.y -= 9.8f * Time.deltaTime;
+    }
+}
+
+public class IngredientItem : MonoBehaviour
+{
+    public string ingredientName;
+    public Color color;
+    public System.Action<IngredientItem> onSelect;
+
+    private void OnMouseDown()
+    {
+        onSelect?.Invoke(this);
     }
 }
