@@ -306,10 +306,24 @@ public class NutritionGame2D : MonoBehaviour
         ClearScene();
         currentPhase = GamePhase.Shopping;
         CreateShopBackground();
-        titleText.text = "TIENDA DE ALIMENTOS";
-        instructionsText.text = "Haz clic en los ingredientes para tu cesta\nPresiona ENTER para finalizar";
+        
+        titleText.text = "<color=#FFEAB0>EL MERCADO GOOGAZ</color>";
+        titleText.fontSize = 65;
+        
+        instructionsText.text = "Selecciona los ingredientes más saludables para completar tu misión.";
+        instructionsText.color = new Color(0.9f, 0.9f, 0.9f);
+        instructionsText.fontSize = 28;
+        instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -440);
+
         scoreText.text = "CESTA: 0";
+        scoreText.color = Color.white;
+        scoreText.fontSize = 45;
+        scoreText.alignment = TextAlignmentOptions.Center;
+        RectTransform srt = scoreText.GetComponent<RectTransform>();
+        srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 1f);
+        srt.anchoredPosition = new Vector2(0, -140);
         scoreText.gameObject.SetActive(true);
+
         CreateShopkeeper();
         CreateShopShelves();
     }
@@ -414,13 +428,22 @@ public class NutritionGame2D : MonoBehaviour
 
     private void CreateShopkeeper()
     {
+        // El mostrador
+        GameObject counter = new GameObject("Counter");
+        counter.transform.SetParent(gameContainer.transform);
+        counter.transform.position = new Vector3(-6.5f, -2f, 2);
+        SpriteRenderer csr = counter.AddComponent<SpriteRenderer>();
+        csr.sprite = CreateBoxSprite(400, 300, new Color(0.25f, 0.15f, 0.1f), true);
+        csr.sortingOrder = 4;
+        counter.transform.localScale = new Vector3(1f, 1f, 1f);
+
         shopkeeper = new GameObject("Shopkeeper");
         shopkeeper.transform.SetParent(gameContainer.transform);
-        shopkeeper.transform.position = new Vector3(-6f, -1f, 0);
+        shopkeeper.transform.position = new Vector3(-6.5f, -0.5f, 1);
         SpriteRenderer sr = shopkeeper.AddComponent<SpriteRenderer>();
         sr.sprite = CreateShopkeeperSprite();
-        sr.sortingOrder = 2;
-        sr.transform.localScale = new Vector3(2f, 2f, 1f);
+        sr.sortingOrder = 3;
+        sr.transform.localScale = new Vector3(2.5f, 2.5f, 1f);
         shopkeeper.AddComponent<ShopkeeperAnimator>();
     }
 
@@ -430,18 +453,30 @@ public class NutritionGame2D : MonoBehaviour
         float startX = -5.5f;
         float startY = 3.2f;
         
-        // Crear estanterías visuales (líneas)
+        // Crear estanterías visuales con profundidad
         for (int r = 0; r < 4; r++)
         {
+            float shelfY = startY - r * 1.6f - 0.7f;
+            
+            // Sombra bajo la estantería
+            GameObject shadow = new GameObject("ShelfShadow");
+            shadow.transform.SetParent(gameContainer.transform);
+            shadow.transform.position = new Vector3(0, shelfY - 0.05f, 6);
+            SpriteRenderer shadowSr = shadow.AddComponent<SpriteRenderer>();
+            shadowSr.sprite = CreateBoxSprite(3000, 40, new Color(0, 0, 0, 0.3f), false);
+            shadowSr.sortingOrder = 0;
+            ScaleToFillScreen(shadow, 1.2f);
+            shadow.transform.localScale = new Vector3(shadow.transform.localScale.x, 0.3f, 1);
+
+            // Estantería principal
             GameObject shelf = new GameObject("Shelf");
             shelf.transform.SetParent(gameContainer.transform);
-            float shelfY = startY - r * 1.6f - 0.7f;
             shelf.transform.position = new Vector3(0, shelfY, 5);
             SpriteRenderer sr = shelf.AddComponent<SpriteRenderer>();
-            sr.sprite = CreateBoxSprite(2400, 25, new Color(0.35f, 0.18f, 0.08f), false);
+            sr.sprite = CreateBoxSprite(3000, 30, new Color(0.45f, 0.28f, 0.15f), true);
             sr.sortingOrder = 1;
-            ScaleToFillScreen(shelf, 1.1f);
-            shelf.transform.localScale = new Vector3(shelf.transform.localScale.x, 0.25f, 1);
+            ScaleToFillScreen(shelf, 1.2f);
+            shelf.transform.localScale = new Vector3(shelf.transform.localScale.x, 0.2f, 1);
         }
 
         for (int i = 0; i < availableIngredients.Length; i++)
@@ -563,8 +598,18 @@ public class NutritionGame2D : MonoBehaviour
         Texture2D tex = new Texture2D(64, 64);
         tex.filterMode = FilterMode.Point;
         for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++) tex.SetPixel(x, y, Color.clear);
-        for (int y = 10; y < 40; y++) for (int x = 20; x < 44; x++) tex.SetPixel(x, y, new Color(0.3f, 0.5f, 0.8f));
+        
+        // Cuerpo / Camisa
+        for (int y = 10; y < 40; y++) for (int x = 15; x < 49; x++) tex.SetPixel(x, y, new Color(0.15f, 0.2f, 0.4f));
+        // Delantal
+        for (int y = 5; y < 35; y++) for (int x = 20; x < 44; x++) tex.SetPixel(x, y, Color.white);
+        // Cara
         for (int y = 40; y < 60; y++) for (int x = 22; x < 42; x++) tex.SetPixel(x, y, new Color(0.95f, 0.8f, 0.7f));
+        // Pelo
+        for (int y = 55; y < 62; y++) for (int x = 20; x < 44; x++) tex.SetPixel(x, y, new Color(0.2f, 0.15f, 0.1f));
+        // Ojos
+        tex.SetPixel(28, 50, Color.black); tex.SetPixel(36, 50, Color.black);
+        
         tex.Apply();
         return Sprite.Create(tex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 16f);
     }
@@ -593,13 +638,44 @@ public class NutritionGame2D : MonoBehaviour
 
     private void CreateShopBackground()
     {
-        GameObject bg = new GameObject("BG_Shop");
+        GameObject bg = new GameObject("BG_Shop_Wall");
         bg.transform.SetParent(gameContainer.transform);
         bg.transform.position = new Vector3(0, 0, 10);
-        SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
-        sr.sprite = GenerateSimpleBackground(new Color(0.8f, 0.7f, 0.6f));
-        sr.sortingOrder = -10;
+        SpriteRenderer srWall = bg.AddComponent<SpriteRenderer>();
+        
+        // Pared con textura de listones o papel tapiz suave
+        Texture2D wallTex = new Texture2D(32, 32);
+        Color wallColor = new Color(0.92f, 0.88f, 0.82f);
+        for (int y = 0; y < 32; y++) {
+            for (int x = 0; x < 32; x++) {
+                Color c = wallColor;
+                if (x == 0 || x == 31) c = Color.Lerp(wallColor, Color.black, 0.05f);
+                wallTex.SetPixel(x, y, c);
+            }
+        }
+        wallTex.Apply();
+        srWall.sprite = Sprite.Create(wallTex, new Rect(0, 0, 32, 32), new Vector2(0.5f, 0.5f), 10f);
+        srWall.sortingOrder = -10;
         ScaleToFillScreen(bg, 1.0f);
+
+        // Suelo con baldosas
+        GameObject floor = new GameObject("BG_Shop_Floor");
+        floor.transform.SetParent(gameContainer.transform);
+        floor.transform.position = new Vector3(0, -3.5f, 9);
+        SpriteRenderer srFloor = floor.AddComponent<SpriteRenderer>();
+        
+        Texture2D floorTex = new Texture2D(64, 64);
+        for (int y = 0; y < 64; y++) {
+            for (int x = 0; x < 64; x++) {
+                bool isTile = (x / 16 + y / 16) % 2 == 0;
+                floorTex.SetPixel(x, y, isTile ? new Color(0.8f, 0.7f, 0.6f) : new Color(0.75f, 0.65f, 0.55f));
+            }
+        }
+        floorTex.Apply();
+        srFloor.sprite = Sprite.Create(floorTex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 10f);
+        srFloor.sortingOrder = -9;
+        ScaleToFillScreen(floor, 1.0f);
+        floor.transform.localScale = new Vector3(floor.transform.localScale.x, 3f, 1f);
     }
 
     private void ScaleToFillScreen(GameObject obj, float padding = 1.0f)
