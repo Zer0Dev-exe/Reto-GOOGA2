@@ -132,11 +132,14 @@ public class NutritionGame2D : MonoBehaviour
         GameObject titleObj = new GameObject("Title");
         titleObj.transform.SetParent(hudCanvas.transform, false);
         titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        titleText.fontSize = 80;
+        titleText.fontSize = 70;
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.fontStyle = FontStyles.Bold;
         titleText.color = new Color(1f, 1f, 0.9f);
-        titleText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 350);
+        titleText.enableWordWrapping = false;
+        RectTransform titleRt = titleText.GetComponent<RectTransform>();
+        titleRt.anchoredPosition = new Vector2(0, 350);
+        titleRt.sizeDelta = new Vector2(1200, 200);
 
         GameObject instrObj = new GameObject("Instructions");
         instrObj.transform.SetParent(hudCanvas.transform, false);
@@ -144,7 +147,10 @@ public class NutritionGame2D : MonoBehaviour
         instructionsText.fontSize = 32;
         instructionsText.alignment = TextAlignmentOptions.Center;
         instructionsText.color = Color.white;
-        instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -350);
+        instructionsText.enableWordWrapping = false;
+        RectTransform instrRt = instructionsText.GetComponent<RectTransform>();
+        instrRt.anchoredPosition = new Vector2(0, -350);
+        instrRt.sizeDelta = new Vector2(1200, 100);
 
         GameObject scoreObj = new GameObject("ScoreHud");
         scoreObj.transform.SetParent(hudCanvas.transform, false);
@@ -197,7 +203,7 @@ public class NutritionGame2D : MonoBehaviour
 
     private void Update()
     {
-        // Actualizar posiciones de textos sobre los botones 2D
+        // Forzar actualización de posiciones de texto sobre botones 2D
         if (gameContainer != null)
         {
             foreach (Transform t in gameContainer.transform)
@@ -205,6 +211,7 @@ public class NutritionGame2D : MonoBehaviour
                 MenuButton mb = t.GetComponent<MenuButton>();
                 if (mb != null && mb.buttonText != null)
                 {
+                    // Usar la posición del Canvas para proyectar correctamente
                     Vector3 screenPos = mainCamera.WorldToScreenPoint(t.position);
                     mb.buttonText.transform.position = screenPos;
                 }
@@ -319,7 +326,11 @@ public class NutritionGame2D : MonoBehaviour
         txt.alignment = TextAlignmentOptions.Center;
         txt.color = Color.white;
         txt.fontStyle = FontStyles.Bold;
+        txt.enableWordWrapping = false;
         txt.raycastTarget = false;
+        
+        RectTransform rt = txt.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(600, 100);
         
         mb.buttonText = textObj;
     }
