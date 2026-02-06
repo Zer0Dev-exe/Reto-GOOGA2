@@ -15,8 +15,8 @@ namespace GOOGAZ
             // Verificar si ya existe Canvas
             if (FindObjectOfType<Canvas>() != null)
             {
-                Debug.Log("Ya existe un Canvas");
-                Destroy(gameObject);
+                Debug.Log("Ya existe un Canvas - Desactivando Setup Básico");
+                Destroy(this);
                 return;
             }
             
