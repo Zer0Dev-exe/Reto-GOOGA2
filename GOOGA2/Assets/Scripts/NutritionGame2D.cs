@@ -123,7 +123,12 @@ public class NutritionGame2D : MonoBehaviour
         hudCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
         hudCanvas.sortingOrder = 100;
 
-        canvasObj.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+
         canvasObj.AddComponent<GraphicRaycaster>();
 
         hudObject = new GameObject("HUD_Dynamic_Content");
@@ -268,10 +273,18 @@ public class NutritionGame2D : MonoBehaviour
         ClearScene();
         currentPhase = GamePhase.Learning;
         CreateChalkboardBackground();
+        
         Scenario s = scenarios[currentScenarioIndex];
-        titleText.text = s.name;
-        instructionsText.text = s.description + "\n\nPresiona ESPACIO para ir a la tienda";
+        
+        // El título va arriba, fuera de la nota
+        titleText.text = $"MISIÓN: {s.name.ToUpper()}";
+        titleText.fontSize = 50;
+        
+        // Crear la nota física
         CreateLearningNote(s);
+
+        instructionsText.text = "<b>PRESIONA ESPACIO PARA IR A LA TIENDA</b>";
+        instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -420);
     }
 
     private void ShowShopping()
@@ -292,13 +305,35 @@ public class NutritionGame2D : MonoBehaviour
         ClearScene();
         currentPhase = GamePhase.Results;
         CreateStarryBackground();
+        
         Scenario s = scenarios[currentScenarioIndex];
         int score = CalculateScore(s);
-        titleText.text = "RESULTADO";
-        instructionsText.text = GetFeedback(s, score) + "\n\nPresiona R para reintentar o M para menú";
-        scoreText.text = $"Puntuación: {score}/100";
+        
+        // Título centralizado
+        titleText.text = "RESUMEN DE MISIÓN";
+        titleText.fontSize = 70;
+        titleText.color = Color.white;
+        
+        // Fondo visual para los resultados (Pantalla casi completa)
+        GameObject panel = new GameObject("ResultsPanel");
+        panel.transform.SetParent(gameContainer.transform);
+        panel.transform.position = new Vector3(0, 0, 5);
+        SpriteRenderer sr = panel.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateBoxSprite(1200, 900, new Color(0, 0, 0, 0.85f), true);
+        sr.sortingOrder = 1;
+        ScaleToFillScreen(panel, 0.9f); // Llenar el 90% de la pantalla
+
+        instructionsText.text = $"<size=50>{GetFeedback(s, score)}</size>\n\n<color=#AAAAAA><size=28>Presiona <b>R</b> para reintentar o <b>M</b> para menú</size></color>";
+        instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -350);
+
+        scoreText.text = $"Puntuación: <size=80>{score}</size>";
         scoreText.color = GetRatingColor(score);
+        scoreText.alignment = TextAlignmentOptions.Center;
+        RectTransform srt = scoreText.GetComponent<RectTransform>();
+        srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 0.5f);
+        srt.anchoredPosition = new Vector2(0, 250);
         scoreText.gameObject.SetActive(true);
+
         DisplaySelectedIngredients();
     }
 
@@ -339,11 +374,28 @@ public class NutritionGame2D : MonoBehaviour
     {
         GameObject noteObj = new GameObject("LearningNote");
         noteObj.transform.SetParent(gameContainer.transform);
-        noteObj.transform.position = Vector3.zero;
+        noteObj.transform.position = new Vector3(0, 0, 5);
         SpriteRenderer sr = noteObj.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateBoxSprite(400, 300, new Color(0.95f, 0.9f, 0.7f), true);
+        sr.sprite = CreateBoxSprite(1000, 700, new Color(0.95f, 0.85f, 0.6f), true);
         sr.sortingOrder = 1;
-        sr.transform.localScale = new Vector3(2.5f, 2f, 1f);
+        ScaleToFillScreen(noteObj, 0.7f); // Ocupa el 70% de la pantalla
+
+        // Texto DENTRO de la nota
+        GameObject noteTextObj = new GameObject("NoteText");
+        noteTextObj.transform.SetParent(hudObject.transform, false);
+        TextMeshProUGUI txt = noteTextObj.AddComponent<TextMeshProUGUI>();
+        txt.color = new Color(0.2f, 0.1f, 0.05f); // Marrón oscuro tipo tinta
+        txt.fontSize = 28;
+        txt.alignment = TextAlignmentOptions.Top;
+        txt.text = $"\n<size=40><B>LISTA DE LA COMPRA</B></size>\n\n" +
+                   $"<size=24>{scenario.description}</size>\n\n" +
+                   $"<align=left><indent=15%>" +
+                   $"Necesitamos comprar:\n" +
+                   $"<color=#335533>• {string.Join("\n• ", scenario.requiredIngredients)}</color></indent></align>";
+        
+        RectTransform rt = txt.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(700, 500);
+        rt.anchoredPosition = new Vector2(0, 40);
     }
 
     private void CreateShopkeeper()
@@ -363,6 +415,20 @@ public class NutritionGame2D : MonoBehaviour
         int cols = 6;
         float startX = -5.5f;
         float startY = 3.2f;
+        
+        // Crear estanterías visuales (líneas)
+        for (int r = 0; r < 4; r++)
+        {
+            GameObject shelf = new GameObject("Shelf");
+            shelf.transform.SetParent(gameContainer.transform);
+            shelf.transform.position = new Vector3(0, startY - r * 1.6f - 0.6f, 5);
+            SpriteRenderer sr = shelf.AddComponent<SpriteRenderer>();
+            sr.sprite = CreateBoxSprite(2000, 20, new Color(0.4f, 0.2f, 0.1f), false);
+            sr.sortingOrder = 1;
+            ScaleToFillScreen(shelf, 1.0f);
+            shelf.transform.localScale = new Vector3(shelf.transform.localScale.x, 0.2f, 1);
+        }
+
         for (int i = 0; i < availableIngredients.Length; i++)
         {
             int r = i / cols;
@@ -409,21 +475,36 @@ public class NutritionGame2D : MonoBehaviour
 
     private void DisplaySelectedIngredients()
     {
-        float startX = -6f;
-        float startY = 2f;
-        int cols = 6;
+        float startX = -4.5f;
+        float startY = 1.0f;
+        int cols = 5;
         for (int i = 0; i < selectedIngredients.Count; i++)
         {
             int r = i / cols;
             int c = i % cols;
             GameObject obj = new GameObject($"Res_{selectedIngredients[i]}");
             obj.transform.SetParent(gameContainer.transform);
-            obj.transform.position = new Vector3(startX + c * 2f, startY - r * 1.5f, 0);
+            obj.transform.position = new Vector3(startX + c * 2.2f, startY - r * 2.0f, 0);
+            
             SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
             Color color = GetIngredientColor(selectedIngredients[i]);
             sr.sprite = SpriteGenerator.GenerateIngredientSprite(selectedIngredients[i], color);
-            sr.sortingOrder = 3;
-            sr.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
+            sr.sortingOrder = 5;
+            sr.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
+            
+            // Etiqueta bajo el ingrediente
+            GameObject textObj = new GameObject($"Label_{i}");
+            textObj.transform.SetParent(hudObject.transform, false);
+            TextMeshProUGUI label = textObj.AddComponent<TextMeshProUGUI>();
+            label.text = selectedIngredients[i].ToUpper();
+            label.fontSize = 20;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = Color.white;
+            label.enableWordWrapping = false;
+            
+            // Poner el texto justo debajo del icono 2D
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(obj.transform.position + Vector3.down * 1.0f);
+            textObj.transform.position = screenPos;
         }
     }
 
@@ -480,8 +561,8 @@ public class NutritionGame2D : MonoBehaviour
         bg.transform.position = new Vector3(0, 0, 10);
         SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
         sr.sprite = GenerateSimpleBackground(new Color(0.05f, 0.05f, 0.15f));
-        sr.transform.localScale = new Vector3(20, 12, 1);
         sr.sortingOrder = -10;
+        ScaleToFillScreen(bg, 1.0f);
     }
 
     private void CreateChalkboardBackground()
@@ -491,8 +572,8 @@ public class NutritionGame2D : MonoBehaviour
         bg.transform.position = new Vector3(0, 0, 10);
         SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
         sr.sprite = GenerateSimpleBackground(new Color(0.15f, 0.25f, 0.2f));
-        sr.transform.localScale = new Vector3(20, 12, 1);
         sr.sortingOrder = -10;
+        ScaleToFillScreen(bg, 1.0f);
     }
 
     private void CreateShopBackground()
@@ -502,8 +583,22 @@ public class NutritionGame2D : MonoBehaviour
         bg.transform.position = new Vector3(0, 0, 10);
         SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
         sr.sprite = GenerateSimpleBackground(new Color(0.8f, 0.7f, 0.6f));
-        sr.transform.localScale = new Vector3(20, 12, 1);
         sr.sortingOrder = -10;
+        ScaleToFillScreen(bg, 1.0f);
+    }
+
+    private void ScaleToFillScreen(GameObject obj, float padding = 1.0f)
+    {
+        SpriteRenderer sr = obj.GetComponent<SpriteRenderer>();
+        if (sr == null || sr.sprite == null) return;
+
+        float height = mainCamera.orthographicSize * 2.0f;
+        float width = height * Screen.width / Screen.height;
+
+        obj.transform.localScale = new Vector3(
+            (width / sr.sprite.bounds.size.x) * padding,
+            (height / sr.sprite.bounds.size.y) * padding,
+            1);
     }
 
     private Sprite GenerateSimpleBackground(Color c)
@@ -532,11 +627,18 @@ public class NutritionGame2D : MonoBehaviour
 
     private Color GetIngredientColor(string ingredient)
     {
-        if (ingredient == "avena" || ingredient == "arroz" || ingredient == "pasta") return new Color(0.85f, 0.7f, 0.4f);
-        if (ingredient == "pollo" || ingredient == "salmón" || ingredient == "merluza") return new Color(1f, 0.6f, 0.6f);
-        if (ingredient.Contains("verdura")) return new Color(0.2f, 0.6f, 0.2f);
-        if (ingredient == "tomate") return new Color(0.9f, 0.2f, 0.2f);
-        return new Color(0.5f, 0.5f, 0.5f);
+        ingredient = ingredient.ToLower();
+        if (ingredient == "avena" || ingredient == "arroz" || ingredient == "pasta" || ingredient == "quinoa") return new Color(0.9f, 0.8f, 0.5f);
+        if (ingredient == "pollo" || ingredient == "pavo") return new Color(1f, 0.8f, 0.7f);
+        if (ingredient == "salmón" || ingredient == "trucha") return new Color(1f, 0.6f, 0.5f);
+        if (ingredient == "merluza" || ingredient == "rodaballo") return new Color(0.9f, 0.9f, 1f);
+        if (ingredient == "lentejas" || ingredient == "garbanzos") return new Color(0.7f, 0.4f, 0.2f);
+        if (ingredient.Contains("verdura") || ingredient == "calabacín" || ingredient == "brócoli") return new Color(0.3f, 0.7f, 0.3f);
+        if (ingredient == "tomate" || ingredient == "fresas" || ingredient == "manzana") return new Color(0.9f, 0.2f, 0.2f);
+        if (ingredient == "calabaza" || ingredient == "zanahoria" || ingredient == "boniato") return new Color(1f, 0.5f, 0.1f);
+        if (ingredient == "queso" || ingredient == "yogurt" || ingredient == "leche") return new Color(0.95f, 0.95f, 1f);
+        if (ingredient == "almendras" || ingredient == "nueces") return new Color(0.6f, 0.4f, 0.3f);
+        return new Color(0.6f, 0.6f, 0.6f);
     }
 
     private int CalculateScore(Scenario scenario)
