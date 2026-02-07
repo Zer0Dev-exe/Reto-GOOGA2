@@ -32,6 +32,11 @@ public class NutritionGame2D : MonoBehaviour
     private GameObject gameContainer; 
     private GameObject hudObject;
     
+    // Referencias a contenedores de HUD para controlar visibilidad por fase
+    private GameObject titleHudObj;
+    private GameObject scoreHudObj;
+    private GameObject instructionsHudObj;
+    
     private GameObject player;
     private GameObject shopkeeper;
     private GameObject currentBackground;
@@ -87,6 +92,18 @@ public class NutritionGame2D : MonoBehaviour
                 if (canvas.gameObject.name != "HUD_Canvas") canvas.gameObject.SetActive(false);
             }
         }
+        if (hudCanvas != null)
+        {
+            // Limpiar elementos persistentes de Resultados o Botones dinámicos del HUD
+            Transform resCont = hudCanvas.transform.Find("ResultsContainer");
+            if (resCont) Destroy(resCont.gameObject);
+            
+            Transform btnT = hudCanvas.transform.Find("Btn_Terminar");
+            if (btnT) Destroy(btnT.gameObject);
+            
+            Transform btnA = hudCanvas.transform.Find("Btn_Aceptar");
+            if (btnA) Destroy(btnA.gameObject);
+        }
     }
 
     private void EnsureEventSystem()
@@ -134,39 +151,107 @@ public class NutritionGame2D : MonoBehaviour
         hudObject = new GameObject("HUD_Dynamic_Content");
         hudObject.transform.SetParent(hudCanvas.transform, false);
 
-        GameObject titleObj = new GameObject("Title");
-        titleObj.transform.SetParent(hudCanvas.transform, false);
-        titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        titleText.fontSize = 70;
-        titleText.alignment = TextAlignmentOptions.Center;
-        titleText.fontStyle = FontStyles.Bold;
-        titleText.color = new Color(1f, 1f, 0.9f);
-        titleText.enableWordWrapping = false;
-        RectTransform titleRt = titleText.GetComponent<RectTransform>();
-        titleRt.anchoredPosition = new Vector2(0, 350);
-        titleRt.sizeDelta = new Vector2(1200, 200);
+        // TITULO Y FONDO
+        // TITULO Y FONDO
+        titleHudObj = new GameObject("TitleHud");
+        titleHudObj.transform.SetParent(hudCanvas.transform, false);
+        RectTransform rtTitleObj = titleHudObj.AddComponent<RectTransform>();
+        // ANCLAJE SUPERIOR CENTRAL (TOP CENTER)
+        rtTitleObj.anchorMin = new Vector2(0, 1);
+        rtTitleObj.anchorMax = new Vector2(1, 1);
+        rtTitleObj.pivot = new Vector2(0.5f, 1);
+        rtTitleObj.anchoredPosition = new Vector2(0, 0); // Pegado arriba
+        rtTitleObj.sizeDelta = new Vector2(0, 120); // Alto fijo, ancho estirado
 
-        GameObject instrObj = new GameObject("Instructions");
-        instrObj.transform.SetParent(hudCanvas.transform, false);
-        instructionsText = instrObj.AddComponent<TextMeshProUGUI>();
-        instructionsText.fontSize = 32;
+        // Fondo (Hijo del objeto título)
+        GameObject titleBg = new GameObject("TitleBG");
+        titleBg.transform.SetParent(titleHudObj.transform, false);
+        Image bgImg = titleBg.AddComponent<Image>();
+        bgImg.color = new Color(0,0,0,0.6f);
+        RectTransform rtBg = titleBg.GetComponent<RectTransform>();
+        rtBg.anchorMin = Vector2.zero;
+        rtBg.anchorMax = Vector2.one; // Estira para llenar el padre
+        rtBg.sizeDelta = Vector2.zero;
+        
+        // Texto (Hijo del objeto título, después del fondo para que se pinte encima)
+        // Texto (Hijo del objeto título)
+        GameObject txtObj = new GameObject("TitleText");
+        txtObj.transform.SetParent(titleHudObj.transform, false);
+        titleText = txtObj.AddComponent<TextMeshProUGUI>();
+        titleText.fontSize = 48; // Base size
+        titleText.alignment = TextAlignmentOptions.Center;
+        titleText.color = new Color(1f, 0.95f, 0.6f); // Dorado claro
+        titleText.fontStyle = FontStyles.Bold;
+        
+        RectTransform trt = titleText.GetComponent<RectTransform>();
+        trt.anchorMin = Vector2.zero;
+        trt.anchorMax = Vector2.one; 
+        trt.sizeDelta = Vector2.zero; // Fill parent
+        trt.offsetMin = new Vector2(0, 10); // Padding visual
+        trt.offsetMax = new Vector2(0, -10);
+
+        // INSTRUCCIONES ESTÁTICAS (Panel inferior)
+        instructionsHudObj = new GameObject("InstructionsHud");
+        instructionsHudObj.transform.SetParent(hudCanvas.transform, false);
+        RectTransform rtInstrObj = instructionsHudObj.AddComponent<RectTransform>();
+        rtInstrObj.anchorMin = Vector2.zero;
+        rtInstrObj.anchorMax = Vector2.one;
+        rtInstrObj.sizeDelta = Vector2.zero;
+        
+        // Fondo ELIMINADO por petición del usuario ("no deberia salir la barra de abajo")
+        // Solo texto con outline para legibilidad
+        
+        // Texto de instrucciones
+        GameObject txtInstrObj = new GameObject("InstrText");
+        txtInstrObj.transform.SetParent(instructionsHudObj.transform, false);
+        instructionsText = txtInstrObj.AddComponent<TextMeshProUGUI>();
+        instructionsText.fontSize = 28;
         instructionsText.alignment = TextAlignmentOptions.Center;
         instructionsText.color = Color.white;
-        instructionsText.enableWordWrapping = false;
+        instructionsText.fontStyle = FontStyles.Bold;
+        instructionsText.enableWordWrapping = true;
+        
+        // Outline para que se lea sin fondo
+        instructionsText.outlineWidth = 0.2f;
+        instructionsText.outlineColor = new Color(0,0,0,1f);
+        
         RectTransform instrRt = instructionsText.GetComponent<RectTransform>();
-        instrRt.anchoredPosition = new Vector2(0, -350);
-        instrRt.sizeDelta = new Vector2(1200, 100);
+        instrRt.anchorMin = new Vector2(0, 0);
+        instrRt.anchorMax = new Vector2(1, 0.1f); // 10% inferior
+        instrRt.offsetMin = new Vector2(20, 10);
+        instrRt.offsetMax = new Vector2(-20, 0);
 
-        GameObject scoreObj = new GameObject("ScoreHud");
-        scoreObj.transform.SetParent(hudCanvas.transform, false);
-        scoreText = scoreObj.AddComponent<TextMeshProUGUI>();
-        scoreText.fontSize = 40;
-        scoreText.alignment = TextAlignmentOptions.TopRight;
-        scoreText.color = Color.yellow;
+        // PUNTUACIÓN / CESTA
+        scoreHudObj = new GameObject("ScoreHud");
+        scoreHudObj.transform.SetParent(hudCanvas.transform, false);
+        RectTransform rtScoreObj = scoreHudObj.AddComponent<RectTransform>();
+        rtScoreObj.anchorMin = new Vector2(1, 1);
+        rtScoreObj.anchorMax = new Vector2(1, 1);
+        rtScoreObj.anchoredPosition = new Vector2(-150, -50);
+        rtScoreObj.sizeDelta = new Vector2(300, 60); // Ancho suficiente para horizontal
+        
+        // Fondo Puntuación
+        GameObject scoreBg = new GameObject("ScoreBG");
+        scoreBg.transform.SetParent(scoreHudObj.transform, false);
+        Image sBg = scoreBg.AddComponent<Image>();
+        sBg.color = new Color(0,0,0,0.7f);
+        RectTransform rtSBg = scoreBg.GetComponent<RectTransform>();
+        rtSBg.anchorMin = Vector2.zero;
+        rtSBg.anchorMax = Vector2.one;
+        rtSBg.sizeDelta = Vector2.zero;
+
+        // Texto Puntuación
+        GameObject txtScoreObj = new GameObject("ScoreText");
+        txtScoreObj.transform.SetParent(scoreHudObj.transform, false);
+        scoreText = txtScoreObj.AddComponent<TextMeshProUGUI>();
+        scoreText.fontSize = 32;
+        scoreText.alignment = TextAlignmentOptions.Center;
+        scoreText.color = new Color(0.5f, 1f, 0.5f); // Verde
+        
         RectTransform srt = scoreText.GetComponent<RectTransform>();
-        srt.anchorMin = srt.anchorMax = new Vector2(1, 1);
-        srt.anchoredPosition = new Vector2(-100, -100);
-        srt.sizeDelta = new Vector2(600, 100);
+        srt.anchorMin = Vector2.zero;
+        srt.anchorMax = Vector2.one;
+        srt.sizeDelta = Vector2.zero;
     }
 
     private Scenario[] scenarios = new Scenario[]
@@ -242,11 +327,33 @@ public class NutritionGame2D : MonoBehaviour
         ShowLearning();
     }
 
+    private void ShowLearning()
+    {
+        ClearScene(); 
+        currentPhase = GamePhase.Learning;
+        
+        // OCULTAR HUD QUE MOLADE (Título y Score)
+        if(titleHudObj) titleHudObj.SetActive(false); // Para que no tape el papel
+        if(scoreHudObj) scoreHudObj.SetActive(false);
+        if(instructionsHudObj) instructionsHudObj.SetActive(true);
+
+        CreateChalkboardBackground();
+        CreateLearningNote(scenarios[currentScenarioIndex]);
+        
+        // Instructions for this phase
+        instructionsText.text = "Pulsa ENTER para comenzar la compra";
+    }
+
     private void ShowIntro()
     {
         ClearScene();
         currentPhase = GamePhase.Intro;
         
+        // HUD Config
+        if(titleHudObj) titleHudObj.SetActive(true);
+        if(scoreHudObj) scoreHudObj.SetActive(false); 
+        if(instructionsHudObj) instructionsHudObj.SetActive(true);
+
         GameObject bgLayer = new GameObject("Intro_BG");
         bgLayer.transform.SetParent(gameContainer.transform);
         bgLayer.transform.position = new Vector3(0, 0, 10);
@@ -258,32 +365,34 @@ public class NutritionGame2D : MonoBehaviour
 
         ScaleToFillScreen(bgLayer, 1.0f);
 
-        titleText.text = ""; // Logo already in background
+        titleText.text = ""; // Logo already in background but we keep TitleHud active for consistent look? No, maybe hide it.
+        // Actually, if Intro BG has logo, hide TitleHud.
+        if(titleHudObj) titleHudObj.SetActive(false);
+        
         instructionsText.text = "PRESIONA <size=50><B><color=#FFD700>ENTER</color></B></size> PARA EMPEZAR";
         instructionsText.color = Color.white;
-        instructionsText.fontSize = 35;
-        
-        // Efecto de sombra para el texto
-        instructionsText.outlineWidth = 0.2f;
-        instructionsText.outlineColor = Color.black;
-
-        // Fondo oscuro para el texto de instrucciones (SOLICITADO POR USUARIO)
-        GameObject instrBg = new GameObject("Intro_InstrBG");
-        instrBg.transform.SetParent(hudCanvas.transform, false);
-        // Asegurar que esté detrás del texto
-        instrBg.transform.SetSiblingIndex(instructionsText.transform.GetSiblingIndex()); 
-        
-        Image img = instrBg.AddComponent<Image>();
-        img.color = new Color(0, 0, 0, 0.85f);
-        RectTransform rt = instrBg.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(1000, 120);
-        rt.anchoredPosition = new Vector2(0, -350);
     }
 
     private void ShowMenu()
     {
-        ClearScene();
+        ClearScene(); 
+        
+        // SEGURIDAD EXTRA: Asegurar que no queda nada del HUD de resultados
+        if (hudCanvas != null)
+        {
+            Transform resCont = hudCanvas.transform.Find("ResultsContainer");
+            if (resCont) Destroy(resCont.gameObject);
+        }
+
         currentPhase = GamePhase.Menu;
+        
+        // Configurar HUD
+        if(titleHudObj) titleHudObj.SetActive(true);
+        if(scoreHudObj) scoreHudObj.SetActive(false); 
+        if(instructionsHudObj) instructionsHudObj.SetActive(true);
+
+        CreateSelectionBackground(); // Fix: Ensure background is created
+
         // Calibración precisa de escala y altura (Senior Polish)
         // Posiciones un poco más altas para dejar aire al suelo
         CreateCharacterSelectionButton(1, "Characters/adolescencia.png", scenarios[1].name.ToUpper(), new Vector3(-6, 0, 0), 7.0f, new Color(0.4f, 1f, 0.4f)); 
@@ -425,45 +534,18 @@ public class NutritionGame2D : MonoBehaviour
         rtb.position = screenPos;
     }
 
-    private void ShowLearning()
-    {
-        ClearScene();
-        currentPhase = GamePhase.Learning;
-        CreateChalkboardBackground();
-        
-        Scenario s = scenarios[currentScenarioIndex];
-        
-        // ELIMINADO EL TÍTULO DEL HUD PARA EVITAR SOLAPAMIENTO Y LIMPIAR LA VISTA
-        titleText.text = ""; 
-        
-        CreateLearningNote(s);
 
-        instructionsText.text = "PRESIONA <color=#FFD700><b>ENTER</b></color> PARA ACEPTAR LA MISIÓN";
-        instructionsText.color = Color.white;
-        instructionsText.fontSize = 32; // Un poco más grande
-        
-        // Fondo oscuro "Cuadrado" para que se vea bien
-        GameObject instrBg = new GameObject("InstrBG");
-        instrBg.transform.SetParent(hudCanvas.transform, false);
-        
-        Image img = instrBg.AddComponent<Image>();
-        img.color = new Color(0.1f, 0.1f, 0.1f, 0.95f); // Casi opaco
-        RectTransform rt = instrBg.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(900, 80);
-        rt.anchoredPosition = new Vector2(0, -480);
-        
-        // Aseguramos que la instrucción de ENTER quede por encima del overlay
-        instructionsText.transform.SetAsLastSibling();
-        
-        // Movemos las instrucciones más abajo para que no tapen el papel
-        RectTransform rtInstr = instructionsText.GetComponent<RectTransform>();
-        rtInstr.anchoredPosition = new Vector2(0, -480);
-    }
 
     private void ShowShopping()
     {
         ClearScene();
         currentPhase = GamePhase.Shopping;
+        
+        // MOSTRAR HUD COMPLETO
+        if(titleHudObj) titleHudObj.SetActive(true);
+        if(scoreHudObj) scoreHudObj.SetActive(true);
+        if(instructionsHudObj) instructionsHudObj.SetActive(true);
+
         CreateShopBackground();
         
         titleText.text = "<color=#FFEAB0>EL MERCADO GOOGAZ</color>";
@@ -474,14 +556,92 @@ public class NutritionGame2D : MonoBehaviour
         instructionsText.fontSize = 28;
         instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -440);
 
+        // BOTÓN TERMINAR (ROJO/NARANJA)
+        GameObject btnEnd = new GameObject("Btn_Terminar");
+        btnEnd.transform.SetParent(hudCanvas.transform, false);
+        Image imgEnd = btnEnd.AddComponent<Image>();
+        imgEnd.color = new Color(0.9f, 0.3f, 0.2f); // Rojo anaranjado
+        Button btn = btnEnd.AddComponent<Button>();
+        btn.onClick.AddListener(()=> ShowResults());
+        RectTransform rtEnd = btnEnd.GetComponent<RectTransform>();
+        rtEnd.anchorMin = new Vector2(0.5f, 0);
+        rtEnd.anchorMax = new Vector2(0.5f, 0);
+        rtEnd.anchoredPosition = new Vector2(0, 80);
+        rtEnd.sizeDelta = new Vector2(300, 80);
+        
+        GameObject txtEnd = new GameObject("Text");
+        txtEnd.transform.SetParent(btnEnd.transform, false);
+        TextMeshProUGUI tmpEnd = txtEnd.AddComponent<TextMeshProUGUI>();
+        tmpEnd.text = "TERMINAR";
+        tmpEnd.color = Color.white;
+        tmpEnd.fontSize = 32;
+        tmpEnd.fontStyle = FontStyles.Bold;
+        tmpEnd.alignment = TextAlignmentOptions.Center;
+        txtEnd.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
+        txtEnd.GetComponent<RectTransform>().anchorMin = Vector2.zero;
+        txtEnd.GetComponent<RectTransform>().anchorMax = Vector2.one;
+
+        // Estilo de Cesta (Score)
         scoreText.text = "CESTA: 0";
-        scoreText.color = Color.white;
-        scoreText.fontSize = 45;
+        scoreText.color = new Color(1f, 1f, 1f); // Blanco para contrastar con el marrón del mostrador
+        scoreText.fontSize = 40;
         scoreText.alignment = TextAlignmentOptions.Center;
+        scoreText.fontStyle = FontStyles.Bold;
+        scoreText.outlineWidth = 0.2f; // Outline para resaltar
+        scoreText.outlineColor = Color.black;
+        
+        // Lo ponemos ABAJO A LA IZQUIERDA (Sobre el mostrador de Oak)
         RectTransform srt = scoreText.GetComponent<RectTransform>();
-        srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 1f);
-        srt.anchoredPosition = new Vector2(0, -140);
-        scoreText.gameObject.SetActive(true);
+        srt.anchorMin = Vector2.zero;
+        srt.anchorMax = Vector2.one;
+        srt.offsetMin = Vector2.zero;
+        srt.offsetMax = Vector2.zero;
+        
+        // Asegurar que el contenedor Scores esté activo y posicionado
+        scoreHudObj.SetActive(true); // Activar
+        
+        // Reposicionar el contenedor del Score sobre el mostrador
+        RectTransform scoreContRT = scoreHudObj.GetComponent<RectTransform>();
+        // Anclaje abajo-izquierda
+        scoreContRT.anchorMin = Vector2.zero;
+        scoreContRT.anchorMax = Vector2.zero;
+        scoreContRT.pivot = new Vector2(0.5f, 0.5f);
+        // Posición ajustada a ojo para coincidir con (-6.5, -2.5) en UI
+        // (-6.5 en world es muy a la izquierda). En UI 1920x1080, x=0 es borde izquierdo.
+        // Vamos a probar con (150, 150)
+        // Vamos a probar con (150, 150)
+        scoreContRT.anchoredPosition = new Vector2(250, 150); 
+        scoreContRT.sizeDelta = new Vector2(300, 100);
+        
+        // ICONO DE BOLSA DE LA COMPRA
+        // ICONO DE BOLSA DE LA COMPRA (Recrear siempre para evitar referencias rotas)
+        Transform existingIcon = scoreHudObj.transform.Find("BagIcon");
+        if (existingIcon) Destroy(existingIcon.gameObject);
+
+        GameObject iconObj = new GameObject("BagIcon");
+        iconObj.transform.SetParent(scoreHudObj.transform, false);
+        Image img = iconObj.AddComponent<Image>();
+        img.sprite = CreateShoppingBagSprite();
+        img.preserveAspect = true;
+        RectTransform rtIcon = iconObj.GetComponent<RectTransform>();
+        rtIcon.anchorMin = new Vector2(0, 0.5f);
+        rtIcon.anchorMax = new Vector2(0, 0.5f);
+        rtIcon.pivot = new Vector2(0, 0.5f);
+        rtIcon.anchoredPosition = new Vector2(20, 0);
+        rtIcon.sizeDelta = new Vector2(80, 80);
+        
+        iconObj.SetActive(true);
+
+        // Ajustar texto para que no solape el icono
+        scoreText.text = "x 0";
+        scoreText.alignment = TextAlignmentOptions.Left;
+        
+        // Reutilizamos la referencia srt
+        srt.offsetMin = new Vector2(110, 0); // Padding izquierdo por el icono
+        srt.offsetMax = Vector2.zero;
+        
+        // IMPORTANTE: Activar el objeto de texto (que ClearScene desactiva)
+        if(scoreText) scoreText.gameObject.SetActive(true);
 
         CreateShopkeeper();
         CreateShopShelves();
@@ -489,40 +649,125 @@ public class NutritionGame2D : MonoBehaviour
 
     private void ShowResults()
     {
-        ClearScene();
+        ClearScene(); // Limpia gameContainer (mundo)
+        
+        // Limpieza explícita del HUD dinámico de Fases anteriores (botones, etc de Shopping)
+        Transform oldBtnT = hudCanvas.transform.Find("Btn_Terminar");
+        if (oldBtnT) Destroy(oldBtnT.gameObject);
+        Transform oldBtnA = hudCanvas.transform.Find("Btn_Aceptar");
+        if (oldBtnA) Destroy(oldBtnA.gameObject);
+
         currentPhase = GamePhase.Results;
-        CreateStarryBackground();
+        
+        // OCULTAR HUD ESTÁNDAR COMPLETO
+        if(titleHudObj) titleHudObj.SetActive(false);
+        if(scoreHudObj) scoreHudObj.SetActive(false);
+        if(instructionsHudObj) instructionsHudObj.SetActive(false);
+
+        // CREAR CONTENEDOR DE RESULTADOS (Para fácil limpieza luego)
+        GameObject resContainer = new GameObject("ResultsContainer");
+        resContainer.transform.SetParent(hudCanvas.transform, false);
+        // Hacemos que ocupe toda la pantalla
+        RectTransform rtRes = resContainer.AddComponent<RectTransform>();
+        rtRes.anchorMin = Vector2.zero;
+        rtRes.anchorMax = Vector2.one;
+        rtRes.sizeDelta = Vector2.zero;
+        
+        // FONDO DE RESULTADOS (Panel UI Semitransparente oscuro)
+        GameObject pnl = new GameObject("PanelBG");
+        pnl.transform.SetParent(resContainer.transform, false);
+        Image imgPnl = pnl.AddComponent<Image>();
+        imgPnl.color = new Color(0.1f, 0.1f, 0.15f, 0.95f);
+        RectTransform rtPnl = pnl.GetComponent<RectTransform>();
+        rtPnl.anchorMin = new Vector2(0.1f, 0.1f);
+        rtPnl.anchorMax = new Vector2(0.9f, 0.9f); // Margen del 10%
         
         Scenario s = scenarios[currentScenarioIndex];
         int score = CalculateScore(s);
         
-        // Título centralizado
-        titleText.text = "RESUMEN DE MISIÓN";
-        titleText.fontSize = 70;
-        titleText.color = Color.white;
-        
-        // Fondo visual para los resultados (Pantalla casi completa)
-        GameObject panel = new GameObject("ResultsPanel");
-        panel.transform.SetParent(gameContainer.transform);
-        panel.transform.position = new Vector3(0, 0, 5);
-        SpriteRenderer sr = panel.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateBoxSprite(1200, 900, new Color(0, 0, 0, 0.85f), true);
-        sr.sortingOrder = 1;
-        ScaleToFillScreen(panel, 0.9f); // Llenar el 90% de la pantalla
+        // TÍTULO RESULTADOS
+        GameObject titleObj = new GameObject("ResTitle");
+        titleObj.transform.SetParent(resContainer.transform, false);
+        TextMeshProUGUI tTitle = titleObj.AddComponent<TextMeshProUGUI>();
+        tTitle.text = "RESUMEN DE MISIÓN";
+        tTitle.fontSize = 65;
+        tTitle.color = new Color(1f, 0.8f, 0.4f); // Dorado suave
+        tTitle.alignment = TextAlignmentOptions.Top;
+        tTitle.fontStyle = FontStyles.Bold;
+        RectTransform rtT = titleObj.GetComponent<RectTransform>();
+        rtT.anchorMin = new Vector2(0.5f, 1f);
+        rtT.anchorMax = new Vector2(0.5f, 1f);
+        rtT.anchoredPosition = new Vector2(0, -150); // Bajado un poco
+        rtT.sizeDelta = new Vector2(800, 100);
 
-        instructionsText.text = $"<size=50>{GetFeedback(s, score)}</size>\n\n<color=#AAAAAA><size=28>Presiona <b>R</b> para reintentar o <b>M</b> para menú</size></color>";
-        instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -350);
+        // PUNTUACIÓN
+        GameObject scObj = new GameObject("ResScore");
+        scObj.transform.SetParent(resContainer.transform, false);
+        TextMeshProUGUI tSc = scObj.AddComponent<TextMeshProUGUI>();
+        tSc.text = $"PUNTUACIÓN: <color={GetRatingColorHex(score)}>{score}</color>";
+        tSc.fontSize = 55;
+        tSc.color = Color.white;
+        tSc.alignment = TextAlignmentOptions.Top;
+        RectTransform rtSc = scObj.GetComponent<RectTransform>();
+        rtSc.anchorMin = new Vector2(0.5f, 1f);
+        rtSc.anchorMax = new Vector2(0.5f, 1f);
+        rtSc.anchoredPosition = new Vector2(0, -250);
+        rtSc.sizeDelta = new Vector2(600, 80);
 
-        scoreText.text = $"Puntuación: <size=80>{score}</size>";
-        scoreText.color = GetRatingColor(score);
-        scoreText.alignment = TextAlignmentOptions.Center;
-        RectTransform srt = scoreText.GetComponent<RectTransform>();
-        srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 0.5f);
-        srt.anchoredPosition = new Vector2(0, 250);
-        scoreText.gameObject.SetActive(true);
+        // FEEDBACK
+        GameObject fbObj = new GameObject("ResFeedback");
+        fbObj.transform.SetParent(resContainer.transform, false);
+        TextMeshProUGUI tFb = fbObj.AddComponent<TextMeshProUGUI>();
+        tFb.text = GetFeedback(s, score);
+        tFb.fontSize = 32;
+        tFb.color = new Color(0.9f, 0.9f, 0.9f);
+        tFb.alignment = TextAlignmentOptions.Center;
+        RectTransform rtFb = fbObj.GetComponent<RectTransform>();
+        rtFb.anchorMin = new Vector2(0.5f, 0.5f);
+        rtFb.anchorMax = new Vector2(0.5f, 0.5f);
+        rtFb.anchoredPosition = new Vector2(0, 0);
+        rtFb.sizeDelta = new Vector2(800, 200);
 
-        DisplaySelectedIngredients();
+        // BOTONES DE ACCIÓN (Reintentar / Menú)
+        CreateResultButton(resContainer.transform, "REINTENTAR", new Vector2(-200, -350), new Color(0.3f, 0.6f, 1f), () => StartScenario(currentScenarioIndex));
+        CreateResultButton(resContainer.transform, "MENÚ", new Vector2(200, -350), new Color(0.8f, 0.4f, 0.2f), () => ShowMenu());
     }
+    
+    private void CreateResultButton(Transform parent, string label, Vector2 pos, Color c, UnityEngine.Events.UnityAction action)
+    {
+        GameObject btnObj = new GameObject("Btn_"+label);
+        btnObj.transform.SetParent(parent, false);
+        Image img = btnObj.AddComponent<Image>();
+        img.color = c;
+        Button btn = btnObj.AddComponent<Button>();
+        btn.onClick.AddListener(action);
+        RectTransform rt = btnObj.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = new Vector2(250, 70);
+        
+        GameObject txtObj = new GameObject("Txt");
+        txtObj.transform.SetParent(btnObj.transform, false);
+        TextMeshProUGUI tm = txtObj.AddComponent<TextMeshProUGUI>();
+        tm.text = label;
+        tm.fontSize = 28;
+        tm.color = Color.white;
+        tm.fontStyle = FontStyles.Bold;
+        tm.alignment = TextAlignmentOptions.Center;
+        RectTransform rtT = txtObj.GetComponent<RectTransform>();
+        rtT.anchorMin = Vector2.zero;
+        rtT.anchorMax = Vector2.one;
+        rtT.sizeDelta = Vector2.zero;
+    }
+    
+    private string GetRatingColorHex(int score) {
+        if(score >= 10) return "#00FF00";
+        if(score >= 5) return "#FFFF00";
+        return "#FF0000";
+    }
+
+
 
     private void CreateButton(string label, Vector3 pos, Color color, System.Action action)
     {
@@ -675,12 +920,35 @@ public class NutritionGame2D : MonoBehaviour
         stampTxt.color = Color.white;
         stampTxtObj.GetComponent<RectTransform>().sizeDelta = new Vector2(280, 70);
         
-        // Aseguramos que la instrucción de ENTER quede por encima del overlay
-        instructionsText.transform.SetAsLastSibling();
+        // 4. BOTÓN ACEPTAR (MISION) - Reemplaza al texto de "Press Enter" y la barra
+        if(instructionsHudObj) instructionsHudObj.SetActive(false); // Ocultar HUD normal aquí
+
+        GameObject btnObj = new GameObject("Btn_Aceptar");
+        btnObj.transform.SetParent(hudCanvas.transform, false);
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.2f, 0.8f, 0.2f); // Verde
         
-        // Movemos las instrucciones más abajo para que no tapen el papel
-        RectTransform rtInstr = instructionsText.GetComponent<RectTransform>();
-        rtInstr.anchoredPosition = new Vector2(0, -480);
+        Button btn = btnObj.AddComponent<Button>();
+        btn.onClick.AddListener(() => ShowShopping());
+
+        RectTransform rtBtn = btnObj.GetComponent<RectTransform>();
+        rtBtn.anchorMin = new Vector2(0.5f, 0);
+        rtBtn.anchorMax = new Vector2(0.5f, 0);
+        rtBtn.anchoredPosition = new Vector2(0, 80); // Un poco elevado del borde
+        rtBtn.sizeDelta = new Vector2(300, 80);
+
+        // Texto del botón
+        GameObject txtBtn = new GameObject("Text");
+        txtBtn.transform.SetParent(btnObj.transform, false);
+        TextMeshProUGUI tmpBtn = txtBtn.AddComponent<TextMeshProUGUI>();
+        tmpBtn.text = "ACEPTAR";
+        tmpBtn.color = Color.white;
+        tmpBtn.fontSize = 36;
+        tmpBtn.fontStyle = FontStyles.Bold;
+        tmpBtn.alignment = TextAlignmentOptions.Center;
+        txtBtn.GetComponent<RectTransform>().sizeDelta = Vector2.zero; // Fill
+        txtBtn.GetComponent<RectTransform>().anchorMin = Vector2.zero;
+        txtBtn.GetComponent<RectTransform>().anchorMax = Vector2.one;
         
         // Y su fondo también
         Transform instrBg = hudCanvas.transform.Find("InstrBG");
@@ -692,22 +960,31 @@ public class NutritionGame2D : MonoBehaviour
 
     private void CreateShopkeeper()
     {
-        // El mostrador
+        // El mostrador (ajustado para que no tape los pies si Oak se mueve)
         GameObject counter = new GameObject("Counter");
         counter.transform.SetParent(gameContainer.transform);
-        counter.transform.position = new Vector3(-6.5f, -2f, 2);
+        counter.transform.position = new Vector3(-6.5f, -2.5f, 2); // Más abajo
         SpriteRenderer csr = counter.AddComponent<SpriteRenderer>();
-        csr.sprite = CreateBoxSprite(400, 300, new Color(0.25f, 0.15f, 0.1f), true);
-        csr.sortingOrder = 4;
+        csr.sprite = CreateBoxSprite(400, 250, new Color(0.25f, 0.15f, 0.1f), true);
+        csr.sortingOrder = 10; // Delante del personaje
         counter.transform.localScale = new Vector3(1f, 1f, 1f);
 
         shopkeeper = new GameObject("Shopkeeper");
         shopkeeper.transform.SetParent(gameContainer.transform);
-        shopkeeper.transform.position = new Vector3(-6.5f, -0.5f, 1);
+        shopkeeper.transform.position = new Vector3(-6.5f, -1.5f, 1); // BAJADO de -0.5f a -1.5f para que no flote
         SpriteRenderer sr = shopkeeper.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateShopkeeperSprite();
-        sr.sortingOrder = 3;
-        sr.transform.localScale = new Vector3(2.5f, 2.5f, 1f);
+        // CAMBIO: Usar el Sprite de Oak en lugar del generado procedimentalmente
+        sr.sprite = CreateCocineroOakSprite(); 
+        sr.sortingOrder = 5; // Detrás del mostrador
+        
+        // Ajuste de escala más natural para el sprite de Oak (que suele ser más alto/detallado)
+        if (sr.sprite != null && sr.sprite.texture.width > 64) {
+            sr.transform.localScale = new Vector3(1.3f, 1.3f, 1f); // MUCHO MAS GRANDE como pidió el usuario
+            sr.transform.localPosition += new Vector3(0, 0.5f, 0); // Ajuste vertical por el tamaño
+        } else {
+            sr.transform.localScale = new Vector3(2.0f, 2.0f, 1f); // Escalar si es pixel art pequeño o fallback
+        }
+        
         shopkeeper.AddComponent<ShopkeeperAnimator>();
     }
 
@@ -765,14 +1042,34 @@ public class NutritionGame2D : MonoBehaviour
             }
 
             // Etiqueta de precio/nombre
+            // Etiqueta de precio/nombre MEJORADA (Fondo oscuro, texto claro)
             GameObject label = new GameObject("PriceLabel");
             label.transform.SetParent(item.transform, false);
-            // Ajustamos posición de la etiqueta relativa al tamaño visual
-            label.transform.localPosition = new Vector3(0, -0.6f, -0.1f); 
-            label.AddComponent<SpriteRenderer>().sprite = CreateBoxSprite(120, 40, new Color(1,1,1,0.8f), true);
-            // Invertimos la escala del padre para que la etiqueta se vea siempre igual
-            float parentScale = item.transform.localScale.x;
-            label.transform.localScale = new Vector3(0.012f / parentScale, 0.012f / parentScale, 1);
+            label.transform.localPosition = new Vector3(0, -0.7f, -0.1f);
+            
+            // Fondo oscuro redondeado para mejor contraste
+            SpriteRenderer labelBg = label.AddComponent<SpriteRenderer>();
+            labelBg.sprite = CreateBoxSprite(140, 40, new Color(0.1f, 0.1f, 0.1f, 0.9f), true);
+            
+            // Ajustar escala del label inversamente al padre para mantener tamaño constante
+            float pScale = item.transform.localScale.x;
+            if (pScale == 0) pScale = 1;
+            label.transform.localScale = new Vector3(0.015f / pScale, 0.015f / pScale, 1);
+            
+            // Texto dentro del label (usando TextMeshPro hijo para nitidez)
+            // Texto dentro del label (usando TextMeshPro hijo para nitidez)
+            GameObject txtObj = new GameObject("Txt");
+            txtObj.transform.SetParent(label.transform, false);
+            txtObj.transform.localPosition = new Vector3(0, 0, -0.1f); // Un poco más cerca de cámara para evitar Z-fighting
+            TextMeshPro labelTxt = txtObj.AddComponent<TextMeshPro>();
+            labelTxt.text = ingredientName.ToUpper();
+            labelTxt.fontSize = 5; // Resolución interna ajustada
+            labelTxt.alignment = TextAlignmentOptions.Center;
+            labelTxt.color = Color.white;
+            // IMPORTANTE: Sorting Order para que se vea sobre el fondo del label y world items
+            labelTxt.GetComponent<MeshRenderer>().sortingOrder = 20; 
+            
+            labelTxt.rectTransform.sizeDelta = new Vector2(14, 4); // Coordenadas locales pequeñas
 
             item.AddComponent<BoxCollider2D>();
             IngredientItem ii = item.AddComponent<IngredientItem>();
@@ -781,7 +1078,7 @@ public class NutritionGame2D : MonoBehaviour
             ii.onSelect = (ing) => {
                 if (!selectedIngredients.Contains(ing.ingredientName)) {
                     selectedIngredients.Add(ing.ingredientName);
-                    scoreText.text = $"CESTA: {selectedIngredients.Count}";
+                    scoreText.text = $"x {selectedIngredients.Count}";
                     CreateParticles(pos, ing.color);
                     // Feedback visual
                     ing.transform.localScale *= 1.2f;
@@ -821,6 +1118,8 @@ public class NutritionGame2D : MonoBehaviour
         { 
             filenameNoExt + "*",          // 1. coincidencia exacta o prefijo (avena -> avena-removebg)
             "*" + filenameNoExt + "*",    // 2. contiene el nombre (fruta -> mixFruta)
+            filenameNoExt.Replace(" ", "") + "*", // 3. sin espacios (queso fresco -> quesofresco)
+            "*" + filenameNoExt.Replace(" ", "") + "*", // 4. contiene nombre sin espacios
         };
 
         // Búsqueda de archivos
@@ -846,20 +1145,47 @@ public class NutritionGame2D : MonoBehaviour
     {
         try 
         {
-            // Buscamos primero en la carpeta específica Food para ser más rápidos
+            // Búsqueda insensible a mayúsculas/minúsculas para Linux
+            // Convertimos el patrón de glob a algo manejable manualmente
+            string patternClean = pattern.Replace("*", "");
+            bool start = pattern.StartsWith("*");
+            bool end = pattern.EndsWith("*");
+            
+            // 1. Buscar en Sprites/Food
             string foodPath = System.IO.Path.Combine(Application.dataPath, "Sprites", "Food");
             if (System.IO.Directory.Exists(foodPath))
             {
-                string[] files = System.IO.Directory.GetFiles(foodPath, pattern);
-                Sprite s = LoadSpriteFromFiles(files);
-                if (s != null) return s;
+                var files = System.IO.Directory.GetFiles(foodPath);
+                foreach(var f in files) {
+                    string fname = System.IO.Path.GetFileNameWithoutExtension(f);
+                    if (IsMatch(fname, patternClean, start, end))
+                        return LoadSpriteFromFiles(new string[]{f});
+                }
             }
 
-            // Si falla, búsqueda profunda (Fallback)
-            string[] allFiles = System.IO.Directory.GetFiles(Application.dataPath, pattern, System.IO.SearchOption.AllDirectories);
-            return LoadSpriteFromFiles(allFiles);
+            // 2. Buscar en todo Assets (Más lento pero necesario si no fallamos)
+            // Limitamos a la carpeta Recursos para no morir escaneando
+            string resPath = System.IO.Path.Combine(Application.dataPath, "Resources");
+            if (System.IO.Directory.Exists(resPath))
+            {
+                var files = System.IO.Directory.GetFiles(resPath, "*", System.IO.SearchOption.AllDirectories);
+                foreach(var f in files) {
+                    string fname = System.IO.Path.GetFileNameWithoutExtension(f);
+                    if (IsMatch(fname, patternClean, start, end))
+                        return LoadSpriteFromFiles(new string[]{f});
+                }
+            }
+            
+            return null;
         } 
         catch { return null; }
+    }
+    
+    private bool IsMatch(string filename, string pattern, bool startWild, bool endWild) {
+        if (startWild && endWild) return filename.IndexOf(pattern, System.StringComparison.OrdinalIgnoreCase) >= 0;
+        if (startWild) return filename.EndsWith(pattern, System.StringComparison.OrdinalIgnoreCase);
+        if (endWild) return filename.StartsWith(pattern, System.StringComparison.OrdinalIgnoreCase);
+        return filename.Equals(pattern, System.StringComparison.OrdinalIgnoreCase);
     }
 
     private Sprite LoadSpriteFromFiles(string[] files)
@@ -1082,6 +1408,11 @@ public class NutritionGame2D : MonoBehaviour
             Transform tBoss = hudCanvas.transform.Find("UI_Boss"); if(tBoss) Destroy(tBoss.gameObject);
             Transform tInstr = hudCanvas.transform.Find("InstrBG"); if(tInstr) Destroy(tInstr.gameObject);
             Transform tIntroInstr = hudCanvas.transform.Find("Intro_InstrBG"); if(tIntroInstr) Destroy(tIntroInstr.gameObject);
+            
+            // Limpiar elementos de Resultados y Botones dinámicos
+            Transform tResCont = hudCanvas.transform.Find("ResultsContainer"); if(tResCont) Destroy(tResCont.gameObject);
+            Transform tBtnEnd = hudCanvas.transform.Find("Btn_Terminar"); if(tBtnEnd) Destroy(tBtnEnd.gameObject);
+            Transform tBtnAcc = hudCanvas.transform.Find("Btn_Aceptar"); if(tBtnAcc) Destroy(tBtnAcc.gameObject);
         }
 
         if (titleText != null) titleText.text = "";
@@ -1112,17 +1443,35 @@ public class NutritionGame2D : MonoBehaviour
 
     private Sprite CreateCocineroOakSprite()
     {
-        // INTENTO DE CARGAR EL SPRITE REAL DEL USUARIO
-        // El usuario debe guardar la imagen como "cocinero_oak.png" en Assets/Resources/Characters o la carpeta de carga
+        // 0. Ruta directa confiable (si existe)
         Sprite s = LoadLocalSprite("Characters/cocinero_oak.png");
+        
+        // 1. Si falla, intentar buscar variantes recursivas
+        if (s == null) s = FindSpriteRecursive("cocinero_oak");
+        if (s == null) s = FindSpriteRecursive("oak");
+        if (s == null) s = FindSpriteRecursive("chef");
+        
         if (s != null) {
             s.texture.filterMode = FilterMode.Point;
             return s;
         }
 
-        // Fallback transparente si no está la imagen aún (para no mostrar el "monigote de minecraft")
-        Texture2D tex = new Texture2D(128, 256);
-        return Sprite.Create(tex, new Rect(0,0,128,256), new Vector2(0.5f,0.5f));
+        // 2. Fallback VISIBLE (Cuadrado blanco/gris con forma básica)
+        int w=128, h=256;
+        Texture2D tex = new Texture2D(w, h);
+        tex.filterMode = FilterMode.Point;
+        Color bodyColor = new Color(0.9f, 0.9f, 0.9f); // Blanco sucio
+        Color skinColor = new Color(1f, 0.8f, 0.6f);
+        
+        for(int y=0; y<h; y++) {
+            for(int x=0; x<w; x++) {
+                if (y > 100) tex.SetPixel(x, y, bodyColor); // Cuerpo
+                else if (y > 60) tex.SetPixel(x,y, skinColor); // Cabeza
+                else tex.SetPixel(x,y, Color.clear);
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0,0,w,h), new Vector2(0.5f,0.5f));
     }
 
     private Sprite CreateShopkeeperSprite()
@@ -1287,6 +1636,35 @@ public class NutritionGame2D : MonoBehaviour
         }
     }
 
+    private Sprite CreateShoppingBagSprite()
+    {
+        int w=32, h=32;
+        Texture2D t = new Texture2D(w, h);
+        t.filterMode = FilterMode.Point;
+        Color clear = Color.clear;
+        Color bagColor = new Color(0.8f, 0.6f, 0.4f); // Papel kraft
+        Color shadow = new Color(0.6f, 0.4f, 0.2f);
+        
+        for(int y=0; y<h; y++) {
+            for(int x=0; x<w; x++) {
+                t.SetPixel(x, y, clear);
+                // Cuerpo de la bolsa
+                if(x >= 6 && x <= 26 && y >= 4 && y <= 24) {
+                    t.SetPixel(x, y, bagColor);
+                    // Sombrita lateral
+                    if(x == 6 || x == 26 || y == 4) t.SetPixel(x,y, shadow); 
+                }
+                // Asas
+                if ((x >= 10 && x <= 12 && y > 24 && y < 29) || (x >= 20 && x <= 22 && y > 24 && y < 29) || (x>=10 && x<=22 && y>=28 && y<=29)) {
+                    if(!(x > 12 && x < 20 && y < 28)) // Hueco del asa
+                        t.SetPixel(x, y, shadow);
+                }
+            }
+        }
+        t.Apply();
+        return Sprite.Create(t, new Rect(0,0,w,h), new Vector2(0.5f,0.5f));
+    }
+
     private Sprite GenerateSimpleBackground(Color c)
     {
         Texture2D t = new Texture2D(16, 16);
@@ -1320,12 +1698,14 @@ public class NutritionGame2D : MonoBehaviour
         if (ingredient == "merluza" || ingredient == "rodaballo") return new Color(0.9f, 0.9f, 1f);
         if (ingredient == "lentejas" || ingredient == "garbanzos") return new Color(0.7f, 0.4f, 0.2f);
         if (ingredient.Contains("verdura") || ingredient == "calabacín" || ingredient == "brócoli") return new Color(0.3f, 0.7f, 0.3f);
-        if (ingredient == "tomate" || ingredient == "fresas" || ingredient == "manzana") return new Color(0.9f, 0.2f, 0.2f);
+        if (ingredient == "tomate" || ingredient == "fresas" || ingredient == "manzana" || ingredient.Contains("fruta")) return new Color(0.9f, 0.2f, 0.2f);
         if (ingredient == "calabaza" || ingredient == "zanahoria" || ingredient == "boniato") return new Color(1f, 0.5f, 0.1f);
-        if (ingredient == "plátano" || ingredient == "banana") return new Color(1f, 0.9f, 0.2f);
-        if (ingredient == "queso" || ingredient == "yogurt" || ingredient == "leche") return new Color(0.95f, 0.95f, 1f);
+        if (ingredient == "plátano" || ingredient == "banana" || ingredient == "patata") return new Color(1f, 0.9f, 0.2f);
+        if (ingredient == "queso" || ingredient.Contains("queso") || ingredient == "yogurt" || ingredient == "leche") return new Color(0.95f, 0.95f, 1f);
         if (ingredient == "almendras" || ingredient == "nueces") return new Color(0.6f, 0.4f, 0.3f);
-        return new Color(0.6f, 0.6f, 0.6f);
+        if (ingredient == "pera") return new Color(0.7f, 0.8f, 0.2f);
+        if (ingredient == "arándanos") return new Color(0.4f, 0.2f, 0.7f);
+        return new Color(0.6f, 0.6f, 0.6f); // GREY (Default)
     }
 
     private int CalculateScore(Scenario scenario)
