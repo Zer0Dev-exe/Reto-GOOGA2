@@ -719,6 +719,9 @@ public class NutritionGame2D : MonoBehaviour
         float startX = -3.5f; 
         
         int ingredientIndex = 0;
+        // CARGA DE SPRITES: Intentar cargar la hoja de sprites completa primero
+        Sprite[] atlasSprites = LoadAndSliceAtlas();
+        
         foreach (var ingredientName in availableIngredients)
         {
             int row = ingredientIndex / cols;
@@ -734,8 +737,12 @@ public class NutritionGame2D : MonoBehaviour
             Color color = GetIngredientColor(ingredientName);
             SpriteRenderer sr = item.AddComponent<SpriteRenderer>();
             
-            // Generación o Carga de Sprite
-            sr.sprite = CreateIngredientSprite(ingredientName, color);
+            // Lógica de Sprites: Atlas > Individual > Procedural (Fallback muy básico)
+            if (atlasSprites != null && ingredientIndex < atlasSprites.Length) {
+                sr.sprite = atlasSprites[ingredientIndex];
+            } else {
+                sr.sprite = CreateIngredientSprite(ingredientName, color);
+            }
             sr.sortingOrder = 5;
 
             // AJUSTE DE ESCALA:
@@ -958,6 +965,34 @@ public class NutritionGame2D : MonoBehaviour
     private string RemoveAccents(string text)
     {
         return text.Replace("á", "a").Replace("é", "e").Replace("í", "i").Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n").Replace("ü", "u");
+    }
+
+    private Sprite[] LoadAndSliceAtlas()
+    {
+        Sprite atlas = LoadLocalSprite("Ingredients/food_icons_atlas.png"); // Nombre fijo del asset generado
+        if (atlas == null) return null;
+
+        Texture2D tex = atlas.texture;
+        tex.filterMode = FilterMode.Point; // Pixel Art nítido
+        
+        int cols = 7;
+        int rows = 4;
+        int total = cols * rows;
+        Sprite[] sprites = new Sprite[total];
+
+        int w = tex.width / cols;
+        int h = tex.height / rows;
+
+        for (int i = 0; i < total; i++)
+        {
+            int c = i % cols;
+            int r = rows - 1 - (i / cols); // Lectura de arriba a abajo (Coordenadas UV empiezan abajo)
+            
+            // Creación del recorte
+            Rect rect = new Rect(c * w, r * h, w, h);
+            sprites[i] = Sprite.Create(tex, rect, new Vector2(0.5f, 0.5f), 16f);
+        }
+        return sprites;
     }
 
     private void CreateParticles(Vector3 pos, Color color)
@@ -1385,6 +1420,22 @@ public class IngredientItem : MonoBehaviour
     public string ingredientName;
     public Color color;
     public System.Action<IngredientItem> onSelect;
+    private Vector3 originalScale;
+
+    private void Start()
+    {
+        originalScale = transform.localScale;
+    }
+
+    private void OnMouseEnter()
+    {
+        transform.localScale = originalScale * 1.2f; // Efecto hover
+    }
+
+    private void OnMouseExit()
+    {
+        transform.localScale = originalScale;
+    }
 
     private void OnMouseDown()
     {
