@@ -32,6 +32,16 @@ public partial class NutritionGame2D : MonoBehaviour
     private List<string> selectedIngredients = new List<string>();
     private GameObject gameContainer; 
     private GameObject hudObject;
+
+    // Coccion
+    private float cookingProgress = 0f;
+    private bool cookingComplete = false;
+    private float cookingDurationSeconds = 8f;
+    private float cookingDecayMultiplier = 0.2f;
+    private UnityEngine.UI.Image cookingBarFill;
+    private UnityEngine.UI.Button cookingContinueButton;
+    private TextMeshProUGUI cookingContinueText;
+    private TextMeshProUGUI cookingPercentText;
     
     // Referencias a contenedores de HUD para controlar visibilidad por fase
     private GameObject titleHudObj;
@@ -42,7 +52,7 @@ public partial class NutritionGame2D : MonoBehaviour
     private GameObject shopkeeper;
     private GameObject currentBackground;
 
-    private enum GamePhase { Intro, Menu, Learning, Shopping, Results }
+    private enum GamePhase { Intro, Menu, Learning, Shopping, Cooking, Results }
 
     // --- SISTEMA DE AUTO-INICIO (ONE CLICK) ---
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -97,11 +107,17 @@ public partial class NutritionGame2D : MonoBehaviour
             Transform resCont = hudCanvas.transform.Find("ResultsContainer");
             if (resCont) Destroy(resCont.gameObject);
             
-            Transform btnT = hudCanvas.transform.Find("Btn_Terminar");
+            Transform btnT = hudCanvas.transform.Find("Btn_Cocinar");
             if (btnT) Destroy(btnT.gameObject);
             
             Transform btnA = hudCanvas.transform.Find("Btn_Aceptar");
             if (btnA) Destroy(btnA.gameObject);
+
+            Transform cookingCont = hudCanvas.transform.Find("CookingContainer");
+            if (cookingCont) Destroy(cookingCont.gameObject);
+
+            Transform btnCont = hudCanvas.transform.Find("Btn_Continuar");
+            if (btnCont) Destroy(btnCont.gameObject);
         }
     }
 
@@ -151,7 +167,11 @@ public partial class NutritionGame2D : MonoBehaviour
         else if (currentPhase == GamePhase.Learning && Input.GetKeyDown(KeyCode.Return))
             ShowShopping();
         else if (currentPhase == GamePhase.Shopping && Input.GetKeyDown(KeyCode.Return))
-            ShowResults();
+            ShowCooking();
+        else if (currentPhase == GamePhase.Cooking)
+        {
+            UpdateCooking();
+        }
         else if (currentPhase == GamePhase.Results)
         {
             if (Input.GetKeyDown(KeyCode.R)) StartScenario(currentScenarioIndex);
@@ -185,12 +205,61 @@ public partial class NutritionGame2D : MonoBehaviour
             Transform tIntroInstr = hudCanvas.transform.Find("Intro_InstrBG"); if(tIntroInstr) Destroy(tIntroInstr.gameObject);
             
             Transform tResCont = hudCanvas.transform.Find("ResultsContainer"); if(tResCont) Destroy(tResCont.gameObject);
-            Transform tBtnEnd = hudCanvas.transform.Find("Btn_Terminar"); if(tBtnEnd) Destroy(tBtnEnd.gameObject);
+            Transform tBtnEnd = hudCanvas.transform.Find("Btn_Cocinar"); if(tBtnEnd) Destroy(tBtnEnd.gameObject);
             Transform tBtnAcc = hudCanvas.transform.Find("Btn_Aceptar"); if(tBtnAcc) Destroy(tBtnAcc.gameObject);
+            Transform tCooking = hudCanvas.transform.Find("CookingContainer"); if(tCooking) Destroy(tCooking.gameObject);
+            Transform tBtnCont = hudCanvas.transform.Find("Btn_Continuar"); if(tBtnCont) Destroy(tBtnCont.gameObject);
         }
 
         if (titleText != null) titleText.text = "";
         if (instructionsText != null) instructionsText.text = "";
         if (scoreText != null) scoreText.gameObject.SetActive(false);
+        cookingBarFill = null;
+        cookingContinueButton = null;
+        cookingContinueText = null;
+        cookingPercentText = null;
+    }
+
+    private void UpdateCooking()
+    {
+        if (cookingBarFill == null) return;
+
+        bool isCooking = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+        float delta = Time.deltaTime / Mathf.Max(1f, cookingDurationSeconds);
+        if (isCooking)
+        {
+            cookingProgress += delta;
+        }
+        else
+        {
+            cookingProgress -= delta * cookingDecayMultiplier;
+        }
+
+        cookingProgress = Mathf.Clamp01(cookingProgress);
+        cookingBarFill.fillAmount = cookingProgress;
+
+        if (cookingPercentText != null)
+        {
+            int pct = Mathf.RoundToInt(cookingProgress * 100f);
+            cookingPercentText.text = $"{pct}%";
+        }
+
+        if (!cookingComplete && cookingProgress >= 1f)
+        {
+            cookingComplete = true;
+            ShowResults();
+        }
+    }
+
+    private void SetInstructionsPanelAlpha(float alpha)
+    {
+        if (instructionsHudObj == null) return;
+        Transform instrBg = instructionsHudObj.transform.Find("InstrBG");
+        if (instrBg == null) return;
+        Image img = instrBg.GetComponent<Image>();
+        if (img == null) return;
+        Color c = img.color;
+        c.a = Mathf.Clamp01(alpha);
+        img.color = c;
     }
 }

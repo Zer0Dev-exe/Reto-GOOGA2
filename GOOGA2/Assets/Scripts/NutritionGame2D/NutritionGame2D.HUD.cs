@@ -71,8 +71,18 @@ public partial class NutritionGame2D
         rtInstrObj.anchorMax = Vector2.one;
         rtInstrObj.sizeDelta = Vector2.zero;
         
+        GameObject instrBg = new GameObject("InstrBG");
+        instrBg.transform.SetParent(instructionsHudObj.transform, false);
+        Image instrBgImg = instrBg.AddComponent<Image>();
+        instrBgImg.color = new Color(0f, 0f, 0f, 0.55f);
+        RectTransform instrBgRt = instrBg.GetComponent<RectTransform>();
+        instrBgRt.anchorMin = new Vector2(0.5f, 0f);
+        instrBgRt.anchorMax = new Vector2(0.5f, 0f);
+        instrBgRt.anchoredPosition = new Vector2(0, 70);
+        instrBgRt.sizeDelta = new Vector2(900, 90);
+
         GameObject txtInstrObj = new GameObject("InstrText");
-        txtInstrObj.transform.SetParent(instructionsHudObj.transform, false);
+        txtInstrObj.transform.SetParent(instrBg.transform, false);
         instructionsText = txtInstrObj.AddComponent<TextMeshProUGUI>();
         instructionsText.fontSize = 28;
         instructionsText.alignment = TextAlignmentOptions.Center;
@@ -84,10 +94,10 @@ public partial class NutritionGame2D
         instructionsText.outlineColor = new Color(0, 0, 0, 1f);
         
         RectTransform instrRt = instructionsText.GetComponent<RectTransform>();
-        instrRt.anchorMin = new Vector2(0, 0);
-        instrRt.anchorMax = new Vector2(1, 0.1f);
+        instrRt.anchorMin = Vector2.zero;
+        instrRt.anchorMax = Vector2.one;
         instrRt.offsetMin = new Vector2(20, 10);
-        instrRt.offsetMax = new Vector2(-20, 0);
+        instrRt.offsetMax = new Vector2(-20, -10);
 
         // PUNTUACIÓN / CESTA
         scoreHudObj = new GameObject("ScoreHud");

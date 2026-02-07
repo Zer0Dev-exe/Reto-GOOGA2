@@ -389,6 +389,80 @@ public partial class NutritionGame2D
                 tex.SetPixel(i, j, c);
     }
 
+    private Sprite CreatePanSprite()
+    {
+        string panPath = System.IO.Path.Combine(Application.dataPath, "sarten_bien.png");
+        if (System.IO.File.Exists(panPath))
+        {
+            byte[] data = System.IO.File.ReadAllBytes(panPath);
+            Texture2D texPan = new Texture2D(2, 2);
+            if (texPan.LoadImage(data))
+            {
+                texPan.filterMode = FilterMode.Point;
+                texPan.Apply();
+                return Sprite.Create(texPan, new Rect(0, 0, texPan.width, texPan.height), new Vector2(0.5f, 0.5f), 32f);
+            }
+        }
+
+        int w = 128;
+        int h = 64;
+        Texture2D tex = new Texture2D(w, h);
+        tex.filterMode = FilterMode.Point;
+
+        Color clear = Color.clear;
+        Color pan = new Color(0.25f, 0.25f, 0.28f);
+        Color rim = new Color(0.1f, 0.1f, 0.12f);
+        Color handle = new Color(0.35f, 0.2f, 0.1f);
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                tex.SetPixel(x, y, clear);
+
+                float nx = (x - w * 0.45f) / (w * 0.4f);
+                float ny = (y - h * 0.55f) / (h * 0.35f);
+                float d = nx * nx + ny * ny;
+
+                if (d <= 1.0f)
+                {
+                    tex.SetPixel(x, y, pan);
+                    if (d >= 0.85f) tex.SetPixel(x, y, rim);
+                }
+
+                // Mango
+                if (y > h * 0.45f && y < h * 0.6f && x > w * 0.78f && x < w * 0.98f)
+                {
+                    tex.SetPixel(x, y, handle);
+                }
+            }
+        }
+
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 32f);
+    }
+
+    private Sprite CreateSmokeSprite()
+    {
+        int size = 64;
+        Texture2D tex = new Texture2D(size, size);
+        tex.filterMode = FilterMode.Point;
+
+        Vector2 center = new Vector2(size / 2f, size / 2f);
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = Vector2.Distance(new Vector2(x, y), center);
+                float alpha = Mathf.Clamp01(1f - dist / (size * 0.5f));
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha * 0.6f));
+            }
+        }
+
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
+    }
+
     private Sprite CreateShoppingBagSprite()
     {
         int w=32, h=32;

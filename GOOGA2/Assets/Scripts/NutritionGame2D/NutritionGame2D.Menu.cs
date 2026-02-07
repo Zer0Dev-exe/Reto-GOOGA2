@@ -25,9 +25,16 @@ public partial class NutritionGame2D
 
         CreateSelectionBackground();
 
-        CreateCharacterSelectionButton(1, "Characters/adolescencia.png", scenarios[1].name.ToUpper(), new Vector3(-6, 0, 0), 7.0f, new Color(0.4f, 1f, 0.4f));
-        CreateCharacterSelectionButton(0, "Characters/embarazo.png", scenarios[0].name.ToUpper(), new Vector3(0, 0, 0), 7.2f, new Color(0.4f, 0.8f, 1f));
-        CreateCharacterSelectionButton(2, "Characters/senectud.png", scenarios[2].name.ToUpper(), new Vector3(6, 0, 0), 7.2f, new Color(1f, 0.85f, 0.4f));
+        titleText.text = "ELIGE UN PERFIL";
+        titleText.fontSize = 56;
+        instructionsText.text = "";
+        if (instructionsHudObj) instructionsHudObj.SetActive(false);
+        RectTransform instrRt = instructionsText.GetComponent<RectTransform>();
+        instrRt.anchoredPosition = Vector2.zero;
+
+        CreateCharacterSelectionButton(1, "Characters/adolescencia.png", "ADOLESCENCIA Y\nESTRES", new Vector3(-6, 0, 0), 7.0f, new Color(0.4f, 1f, 0.4f));
+        CreateCharacterSelectionButton(0, "Characters/embarazo.png", "EMBARAZO Y\nDEPORTE", new Vector3(0, 0, 0), 7.2f, new Color(0.4f, 0.8f, 1f));
+        CreateCharacterSelectionButton(2, "Characters/senectud.png", "SENECTUD - GESTION\nDE MIGRANA", new Vector3(6, 0, 0), 7.2f, new Color(1f, 0.85f, 0.4f));
     }
 
     private void CreateSelectionBackground()

@@ -13,10 +13,14 @@ public partial class NutritionGame2D
         ClearScene();
         
         // Limpieza explícita del HUD dinámico de fases anteriores
-        Transform oldBtnT = hudCanvas.transform.Find("Btn_Terminar");
+        Transform oldBtnT = hudCanvas.transform.Find("Btn_Cocinar");
         if (oldBtnT) Destroy(oldBtnT.gameObject);
         Transform oldBtnA = hudCanvas.transform.Find("Btn_Aceptar");
         if (oldBtnA) Destroy(oldBtnA.gameObject);
+        Transform oldCook = hudCanvas.transform.Find("CookingContainer");
+        if (oldCook) Destroy(oldCook.gameObject);
+        Transform oldCont = hudCanvas.transform.Find("Btn_Continuar");
+        if (oldCont) Destroy(oldCont.gameObject);
 
         currentPhase = GamePhase.Results;
         

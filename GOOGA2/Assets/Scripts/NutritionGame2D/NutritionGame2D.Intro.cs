@@ -29,8 +29,12 @@ public partial class NutritionGame2D
         titleText.text = "";
         if (titleHudObj) titleHudObj.SetActive(false);
         
-        instructionsText.text = "PRESIONA <size=50><B><color=#FFD700>ENTER</color></B></size> PARA EMPEZAR";
-        instructionsText.color = Color.white;
+        instructionsText.text = "PULSA <color=#FFD700>ENTER</color> PARA EMPEZAR";
+        instructionsText.color = new Color(1f, 0.95f, 0.8f);
+        instructionsText.fontSize = 34;
+        RectTransform instrRt = instructionsText.GetComponent<RectTransform>();
+        instrRt.anchoredPosition = Vector2.zero;
+        SetInstructionsPanelAlpha(0.55f);
     }
 
     private void CreateStarryBackground()

@@ -27,14 +27,15 @@ public partial class NutritionGame2D
         instructionsText.color = new Color(0.9f, 0.9f, 0.9f);
         instructionsText.fontSize = 28;
         instructionsText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -440);
+        SetInstructionsPanelAlpha(0f);
 
-        // BOTÓN TERMINAR (ROJO/NARANJA)
-        GameObject btnEnd = new GameObject("Btn_Terminar");
+        // BOTON COCINAR (ROJO/NARANJA)
+        GameObject btnEnd = new GameObject("Btn_Cocinar");
         btnEnd.transform.SetParent(hudCanvas.transform, false);
         Image imgEnd = btnEnd.AddComponent<Image>();
         imgEnd.color = new Color(0.9f, 0.3f, 0.2f);
         Button btn = btnEnd.AddComponent<Button>();
-        btn.onClick.AddListener(()=> ShowResults());
+        btn.onClick.AddListener(()=> ShowCooking());
         RectTransform rtEnd = btnEnd.GetComponent<RectTransform>();
         rtEnd.anchorMin = new Vector2(0.5f, 0);
         rtEnd.anchorMax = new Vector2(0.5f, 0);
@@ -44,7 +45,7 @@ public partial class NutritionGame2D
         GameObject txtEnd = new GameObject("Text");
         txtEnd.transform.SetParent(btnEnd.transform, false);
         TextMeshProUGUI tmpEnd = txtEnd.AddComponent<TextMeshProUGUI>();
-        tmpEnd.text = "TERMINAR";
+        tmpEnd.text = "COCINAR";
         tmpEnd.color = Color.white;
         tmpEnd.fontSize = 32;
         tmpEnd.fontStyle = FontStyles.Bold;

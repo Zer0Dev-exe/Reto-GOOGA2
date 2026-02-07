@@ -19,7 +19,8 @@ public partial class NutritionGame2D
         CreateChalkboardBackground();
         CreateLearningNote(scenarios[currentScenarioIndex]);
         
-        instructionsText.text = "Pulsa ENTER para comenzar la compra";
+        instructionsText.text = "";
+        if (instructionsHudObj) instructionsHudObj.SetActive(false);
     }
 
     private void CreateChalkboardBackground()
