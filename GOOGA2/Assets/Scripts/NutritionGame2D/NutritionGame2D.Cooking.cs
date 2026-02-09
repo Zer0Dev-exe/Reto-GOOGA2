@@ -36,20 +36,20 @@ public partial class NutritionGame2D
         bgSr.sortingOrder = -10;
         ScaleToFillScreen(bg, 1.0f);
 
-        // Sarten
+        // Sarten: Mejorada para cubrir el area de alimentos
         GameObject pan = new GameObject("Cooking_Pan");
         pan.transform.SetParent(gameContainer.transform);
-        pan.transform.position = new Vector3(0, -1.6f, 0);
+        pan.transform.position = new Vector3(0, -0.2f, 0); // Ajustado para centrar el cuenco tras los iconos
         SpriteRenderer panSr = pan.AddComponent<SpriteRenderer>();
         panSr.sprite = CreatePanSprite();
         panSr.sortingOrder = 5;
-        pan.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
+        pan.transform.localScale = new Vector3(0.75f, 0.75f, 1f); // Proporción más equilibrada
 
         // Ingredientes sobre la sarten
         for (int i = 0; i < selectedIngredients.Count; i++)
         {
             float ang = (selectedIngredients.Count > 0) ? (i / (float)selectedIngredients.Count) * Mathf.PI * 2f : 0f;
-            Vector3 offset = new Vector3(Mathf.Cos(ang) * 0.6f, Mathf.Sin(ang) * 0.2f, -0.1f);
+            Vector3 offset = new Vector3(Mathf.Cos(ang) * 0.8f, Mathf.Sin(ang) * 0.3f, -0.1f);
 
             GameObject ing = new GameObject($"Cook_{selectedIngredients[i]}");
             ing.transform.SetParent(gameContainer.transform);
@@ -65,7 +65,7 @@ public partial class NutritionGame2D
                 float maxSize = Mathf.Max(sr.sprite.bounds.size.x, sr.sprite.bounds.size.y);
                 if (maxSize > 0)
                 {
-                    float targetSize = 0.6f;
+                    float targetSize = 0.8f;
                     float scaleFactor = targetSize / maxSize;
                     ing.transform.localScale = Vector3.one * scaleFactor;
                 }
@@ -108,7 +108,7 @@ public partial class NutritionGame2D
         RectTransform rtLabel = labelTxt.GetComponent<RectTransform>();
         rtLabel.anchorMin = new Vector2(0.5f, 1f);
         rtLabel.anchorMax = new Vector2(0.5f, 1f);
-        rtLabel.anchoredPosition = new Vector2(0, -200);
+        rtLabel.anchoredPosition = new Vector2(0, -140); // Subido
         rtLabel.sizeDelta = new Vector2(600, 40);
 
         int cols = 5;
@@ -116,7 +116,7 @@ public partial class NutritionGame2D
         float spacingY = 130f;
         int rows = Mathf.CeilToInt(selectedIngredients.Count / (float)cols);
         float startX = -((cols - 1) * spacingX) * 0.5f;
-        float startY = -260f;
+        float startY = -180f; // Centrado en la sarten
 
         for (int i = 0; i < selectedIngredients.Count; i++)
         {
@@ -159,7 +159,7 @@ public partial class NutritionGame2D
         RectTransform rtBarBg = barBg.GetComponent<RectTransform>();
         rtBarBg.anchorMin = new Vector2(0.5f, 0f);
         rtBarBg.anchorMax = new Vector2(0.5f, 0f);
-        rtBarBg.anchoredPosition = new Vector2(0, 220);
+        rtBarBg.anchoredPosition = new Vector2(0, 180); // Cerca de la sarten
         rtBarBg.sizeDelta = new Vector2(620, 28);
 
         GameObject barFill = new GameObject("CookBar_Fill");
@@ -189,6 +189,22 @@ public partial class NutritionGame2D
         rtPct.anchorMax = Vector2.one;
         rtPct.sizeDelta = Vector2.zero;
         cookingPercentText = pctTxt;
+
+        // Texto de estado (Restaurado)
+        GameObject statusObj = new GameObject("CookStatusText");
+        statusObj.transform.SetParent(cont.transform, false);
+        TextMeshProUGUI statusTxt = statusObj.AddComponent<TextMeshProUGUI>();
+        statusTxt.text = "Mantén presionado para cocinar";
+        statusTxt.fontSize = 28;
+        statusTxt.fontStyle = FontStyles.Bold;
+        statusTxt.alignment = TextAlignmentOptions.Center;
+        statusTxt.color = new Color(1f, 0.9f, 0.4f);
+        RectTransform rtStatus = statusObj.GetComponent<RectTransform>();
+        rtStatus.anchorMin = new Vector2(0.5f, 0f);
+        rtStatus.anchorMax = new Vector2(0.5f, 0f);
+        rtStatus.anchoredPosition = new Vector2(0, 240); // Sobre la barra
+        rtStatus.sizeDelta = new Vector2(800, 50);
+        cookingStatusText = statusTxt;
 
     }
 }

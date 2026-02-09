@@ -42,6 +42,7 @@ public partial class NutritionGame2D : MonoBehaviour
     private UnityEngine.UI.Button cookingContinueButton;
     private TextMeshProUGUI cookingContinueText;
     private TextMeshProUGUI cookingPercentText;
+    private TextMeshProUGUI cookingStatusText;
     
     // Referencias a contenedores de HUD para controlar visibilidad por fase
     private GameObject titleHudObj;
@@ -238,10 +239,21 @@ public partial class NutritionGame2D : MonoBehaviour
         cookingProgress = Mathf.Clamp01(cookingProgress);
         cookingBarFill.fillAmount = cookingProgress;
 
+        int pct = Mathf.RoundToInt(cookingProgress * 100f);
         if (cookingPercentText != null)
         {
-            int pct = Mathf.RoundToInt(cookingProgress * 100f);
             cookingPercentText.text = $"{pct}%";
+        }
+
+        if (cookingStatusText != null)
+        {
+            if (pct >= 100) cookingStatusText.text = "<color=#FFFF00>¡PLATO TERMINADO!</color>";
+            else if (pct >= 80) cookingStatusText.text = "¡A punto de caramelo!";
+            else if (pct >= 60) cookingStatusText.text = "Casi listo, ¡un último esfuerzo!";
+            else if (pct >= 40) cookingStatusText.text = "¡Huele de maravilla!";
+            else if (pct >= 20) cookingStatusText.text = "Los sabores se están mezclando...";
+            else if (pct > 0) cookingStatusText.text = "¡Empezando a calentar!";
+            else cookingStatusText.text = "Mantén presionado para cocinar";
         }
 
         if (!cookingComplete && cookingProgress >= 1f)
