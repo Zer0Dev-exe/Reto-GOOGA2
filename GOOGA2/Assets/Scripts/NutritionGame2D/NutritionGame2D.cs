@@ -80,20 +80,7 @@ public partial class NutritionGame2D : MonoBehaviour
         EnsureEventSystem();
         SetupCamera();
         SetupHUD();
-
-        // --- INICIO DIRECTO EN 3D ---
-        // Añadir ingredientes de ejemplo para que la escena 3D tenga contenido
-        if (selectedIngredients.Count == 0)
-        {
-            selectedIngredients.Add("Tomate");
-            selectedIngredients.Add("Cebolla");
-            selectedIngredients.Add("Pollo");
-            selectedIngredients.Add("Arroz");
-            selectedIngredients.Add("Pimiento");
-        }
-        ShowCooking();
-        // Para volver al flujo normal, comenta las líneas de arriba y descomenta:
-        // ShowIntro();
+        ShowIntro();
     }
 
     private void CleanupOldSystem()
