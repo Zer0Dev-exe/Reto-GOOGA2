@@ -27,67 +27,42 @@ public partial class NutritionGame2D
         instrRt.anchoredPosition = Vector2.zero;
         SetInstructionsPanelAlpha(0.55f);
 
-        // Fondo simple de cocina
-        GameObject bg = new GameObject("Cooking_BG");
-        bg.transform.SetParent(gameContainer.transform);
-        bg.transform.position = new Vector3(0, 0, 10);
-        SpriteRenderer bgSr = bg.AddComponent<SpriteRenderer>();
-        bgSr.sprite = GenerateSimpleBackground(new Color(0.12f, 0.1f, 0.1f));
-        bgSr.sortingOrder = -10;
-        ScaleToFillScreen(bg, 1.0f);
+        // --- TRANSICIÓN A 3D REAL ---
+        Setup3DCamera();
+        Setup3DLighting();
 
-        // Sarten: Mejorada para cubrir el area de alimentos
-        GameObject pan = new GameObject("Cooking_Pan");
-        pan.transform.SetParent(gameContainer.transform);
-        pan.transform.position = new Vector3(0, -0.2f, 0); // Ajustado para centrar el cuenco tras los iconos
-        SpriteRenderer panSr = pan.AddComponent<SpriteRenderer>();
-        panSr.sprite = CreatePanSprite();
-        panSr.sortingOrder = 5;
-        pan.transform.localScale = new Vector3(0.75f, 0.75f, 1f); // Proporción más equilibrada
+        // Fondo (estrellas o fogón)
+        GameObject bg3d = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        bg3d.name = "Kitchen_Floor";
+        bg3d.transform.SetParent(gameContainer.transform);
+        bg3d.transform.position = new Vector3(0, -0.1f, 0);
+        bg3d.transform.localScale = new Vector3(10, 1, 10);
+        Material bgMat = CreateURPMaterial(new Color(0.1f, 0.08f, 0.08f), 0.2f);
+        bg3d.GetComponent<Renderer>().material = bgMat;
 
-        // Ingredientes sobre la sarten
-        for (int i = 0; i < selectedIngredients.Count; i++)
+        // Sartén 3D
+        Create3DPan();
+
+        // Ingredientes 3D
+        Create3DIngredients();
+
+        // Humo (Uso partículas 2D pero en el espacio 3D para estilo híbrido)
+        for (int i = 0; i < 15; i++)
         {
-            float ang = (selectedIngredients.Count > 0) ? (i / (float)selectedIngredients.Count) * Mathf.PI * 2f : 0f;
-            Vector3 offset = new Vector3(Mathf.Cos(ang) * 0.8f, Mathf.Sin(ang) * 0.3f, -0.1f);
-
-            GameObject ing = new GameObject($"Cook_{selectedIngredients[i]}");
-            ing.transform.SetParent(gameContainer.transform);
-            ing.transform.position = pan.transform.position + offset;
-
-            SpriteRenderer sr = ing.AddComponent<SpriteRenderer>();
-            Color c = GetIngredientColor(selectedIngredients[i]);
-            sr.sprite = CreateIngredientSprite(selectedIngredients[i], c);
-            sr.sortingOrder = 6;
-
-            if (sr.sprite != null)
-            {
-                float maxSize = Mathf.Max(sr.sprite.bounds.size.x, sr.sprite.bounds.size.y);
-                if (maxSize > 0)
-                {
-                    float targetSize = 0.8f;
-                    float scaleFactor = targetSize / maxSize;
-                    ing.transform.localScale = Vector3.one * scaleFactor;
-                }
-            }
-        }
-
-        // Humo
-        for (int i = 0; i < 12; i++)
-        {
-            GameObject smoke = new GameObject("Smoke");
+            GameObject smoke = new GameObject("Smoke3D");
             smoke.transform.SetParent(gameContainer.transform);
-            smoke.transform.position = pan.transform.position + new Vector3(Random.Range(-0.6f, 0.6f), 0.4f, -0.2f);
+            smoke.transform.position = new Vector3(Random.Range(-2f, 2f), 1f, Random.Range(-2f, 2f));
 
             SpriteRenderer sr = smoke.AddComponent<SpriteRenderer>();
             sr.sprite = CreateSmokeSprite();
-            sr.color = new Color(1f, 1f, 1f, 0.35f);
-            sr.sortingOrder = 7;
-            smoke.transform.localScale = Vector3.one * Random.Range(0.5f, 0.9f);
+            sr.color = new Color(1f, 1f, 1f, 0.25f);
+            sr.sortingOrder = 50;
+            smoke.transform.localScale = Vector3.one * Random.Range(1f, 2.5f);
+            smoke.transform.rotation = Quaternion.Euler(90, 0, 0); // Mirando a cámara
 
             ParticleController pc = smoke.AddComponent<ParticleController>();
-            pc.velocity = new Vector2(Random.Range(-0.3f, 0.3f), Random.Range(0.6f, 1.2f));
-            pc.lifetime = Random.Range(0.8f, 1.6f);
+            pc.velocity = new Vector2(Random.Range(-0.2f, 0.2f), Random.Range(1.5f, 3.0f));
+            pc.lifetime = Random.Range(1f, 2.5f);
         }
 
         // UI: contenedor de ingredientes y barra de progreso
@@ -112,11 +87,11 @@ public partial class NutritionGame2D
         rtLabel.sizeDelta = new Vector2(600, 40);
 
         int cols = 5;
-        float spacingX = 140f;
-        float spacingY = 130f;
+        float spacingX = 130f;
+        float spacingY = 120f;
         int rows = Mathf.CeilToInt(selectedIngredients.Count / (float)cols);
         float startX = -((cols - 1) * spacingX) * 0.5f;
-        float startY = -180f; // Centrado en la sarten
+        float startY = -150f; // Ajustado para que la cuadrícula quede dentro del cuenco
 
         for (int i = 0; i < selectedIngredients.Count; i++)
         {
@@ -133,7 +108,7 @@ public partial class NutritionGame2D
             rtIcon.anchorMin = new Vector2(0.5f, 1f);
             rtIcon.anchorMax = new Vector2(0.5f, 1f);
             rtIcon.anchoredPosition = new Vector2(startX + c * spacingX, startY - r * spacingY);
-            rtIcon.sizeDelta = new Vector2(80, 80);
+            rtIcon.sizeDelta = new Vector2(70, 70); // Un poco más compactos
 
             GameObject nameObj = new GameObject($"CookName_{i}");
             nameObj.transform.SetParent(cont.transform, false);

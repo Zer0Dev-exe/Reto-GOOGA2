@@ -80,7 +80,20 @@ public partial class NutritionGame2D : MonoBehaviour
         EnsureEventSystem();
         SetupCamera();
         SetupHUD();
-        ShowIntro();
+
+        // --- INICIO DIRECTO EN 3D ---
+        // Añadir ingredientes de ejemplo para que la escena 3D tenga contenido
+        if (selectedIngredients.Count == 0)
+        {
+            selectedIngredients.Add("Tomate");
+            selectedIngredients.Add("Cebolla");
+            selectedIngredients.Add("Pollo");
+            selectedIngredients.Add("Arroz");
+            selectedIngredients.Add("Pimiento");
+        }
+        ShowCooking();
+        // Para volver al flujo normal, comenta las líneas de arriba y descomenta:
+        // ShowIntro();
     }
 
     private void CleanupOldSystem()
@@ -215,6 +228,16 @@ public partial class NutritionGame2D : MonoBehaviour
         if (titleText != null) titleText.text = "";
         if (instructionsText != null) instructionsText.text = "";
         if (scoreText != null) scoreText.gameObject.SetActive(false);
+
+        // Reset camera to 2D for normal phases
+        if (mainCamera != null) {
+            mainCamera.orthographic = true;
+            mainCamera.orthographicSize = 5f;
+            mainCamera.transform.position = new Vector3(0, 0, -10);
+            mainCamera.transform.rotation = Quaternion.identity;
+        }
+        if (directionalLight != null) directionalLight.gameObject.SetActive(false);
+
         cookingBarFill = null;
         cookingContinueButton = null;
         cookingContinueText = null;
