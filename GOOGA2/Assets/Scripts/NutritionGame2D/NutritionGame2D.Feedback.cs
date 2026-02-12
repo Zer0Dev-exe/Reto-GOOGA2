@@ -6,6 +6,7 @@ using System.Linq;
 /// <summary>
 /// NutritionGame2D - Pantalla de Feedback detallado
 /// Muestra análisis nutricional completo con desglose de ingredientes
+/// y explicaciones de por qué cada alimento es bueno o malo para el escenario.
 /// </summary>
 public partial class NutritionGame2D
 {
@@ -53,118 +54,165 @@ public partial class NutritionGame2D
         titleObj.transform.SetParent(feedContainer.transform, false);
         TextMeshProUGUI tTitle = titleObj.AddComponent<TextMeshProUGUI>();
         tTitle.text = "ANÁLISIS NUTRICIONAL";
-        tTitle.fontSize = 55;
+        tTitle.fontSize = 48;
         tTitle.color = new Color(1f, 0.85f, 0.4f);
         tTitle.alignment = TextAlignmentOptions.Center;
         tTitle.fontStyle = FontStyles.Bold;
         RectTransform rtT = titleObj.GetComponent<RectTransform>();
         rtT.anchorMin = new Vector2(0.5f, 1f);
         rtT.anchorMax = new Vector2(0.5f, 1f);
-        rtT.anchoredPosition = new Vector2(0, -80);
-        rtT.sizeDelta = new Vector2(800, 80);
+        rtT.anchoredPosition = new Vector2(0, -60);
+        rtT.sizeDelta = new Vector2(800, 60);
 
         // === ESCENARIO ===
         GameObject scenarioObj = new GameObject("FeedScenario");
         scenarioObj.transform.SetParent(feedContainer.transform, false);
         TextMeshProUGUI tScen = scenarioObj.AddComponent<TextMeshProUGUI>();
         tScen.text = $"<color=#AACCFF>Escenario:</color> {s.name}";
-        tScen.fontSize = 28;
+        tScen.fontSize = 24;
         tScen.color = Color.white;
         tScen.alignment = TextAlignmentOptions.Center;
         RectTransform rtScen = scenarioObj.GetComponent<RectTransform>();
         rtScen.anchorMin = new Vector2(0.5f, 1f);
         rtScen.anchorMax = new Vector2(0.5f, 1f);
-        rtScen.anchoredPosition = new Vector2(0, -145);
-        rtScen.sizeDelta = new Vector2(700, 40);
+        rtScen.anchoredPosition = new Vector2(0, -115);
+        rtScen.sizeDelta = new Vector2(700, 35);
 
         // === PUNTUACIÓN ===
         GameObject scoreObj = new GameObject("FeedScore");
         scoreObj.transform.SetParent(feedContainer.transform, false);
         TextMeshProUGUI tScore = scoreObj.AddComponent<TextMeshProUGUI>();
         tScore.text = $"Puntuación Final: <color={GetRatingColorHex(score)}>{score} / 100</color>";
-        tScore.fontSize = 36;
+        tScore.fontSize = 30;
         tScore.color = Color.white;
         tScore.alignment = TextAlignmentOptions.Center;
         tScore.fontStyle = FontStyles.Bold;
         RectTransform rtSc = scoreObj.GetComponent<RectTransform>();
         rtSc.anchorMin = new Vector2(0.5f, 1f);
         rtSc.anchorMax = new Vector2(0.5f, 1f);
-        rtSc.anchoredPosition = new Vector2(0, -190);
-        rtSc.sizeDelta = new Vector2(600, 50);
+        rtSc.anchoredPosition = new Vector2(0, -155);
+        rtSc.sizeDelta = new Vector2(600, 40);
 
         // === SEPARADOR ===
-        CreateSeparator(feedContainer.transform, new Vector2(0, -225), 650f);
+        CreateSeparator(feedContainer.transform, new Vector2(0, -185), 650f);
 
-        // === DESGLOSE DE INGREDIENTES ===
-        float yPos = -265f;
+        // === SCROLL VIEW para el contenido detallado ===
+        GameObject scrollObj = new GameObject("FeedScrollView");
+        scrollObj.transform.SetParent(feedContainer.transform, false);
+        RectTransform rtScroll = scrollObj.AddComponent<RectTransform>();
+        rtScroll.anchorMin = new Vector2(0.08f, 0f);
+        rtScroll.anchorMax = new Vector2(0.92f, 1f);
+        rtScroll.offsetMin = new Vector2(0, 100);   // margen inferior (botones)
+        rtScroll.offsetMax = new Vector2(0, -200);   // margen superior (título, score)
 
-        // --- Ingredientes requeridos ---
-        yPos = CreateIngredientSection(feedContainer.transform, "INGREDIENTES REQUERIDOS",
-            s.requiredIngredients, new Color(0.3f, 1f, 0.3f), new Color(0.5f, 0.5f, 0.5f), yPos);
+        ScrollRect scrollRect = scrollObj.AddComponent<ScrollRect>();
+        scrollRect.horizontal = false;
+        scrollRect.vertical = true;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
 
-        // --- Ingredientes buenos ---
-        yPos = CreateIngredientSection(feedContainer.transform, "INGREDIENTES BUENOS",
-            s.goodIngredients, new Color(0.6f, 0.85f, 1f), new Color(0.4f, 0.4f, 0.5f), yPos);
+        Image scrollBg = scrollObj.AddComponent<Image>();
+        scrollBg.color = new Color(0, 0, 0, 0.01f); // casi invisible, para raycast
+        scrollObj.AddComponent<Mask>().showMaskGraphic = false;
 
-        // --- Ingredientes malos seleccionados ---
+        // Contenido del scroll
+        GameObject contentObj = new GameObject("ScrollContent");
+        contentObj.transform.SetParent(scrollObj.transform, false);
+        RectTransform rtContent = contentObj.AddComponent<RectTransform>();
+        rtContent.anchorMin = new Vector2(0, 1);
+        rtContent.anchorMax = new Vector2(1, 1);
+        rtContent.pivot = new Vector2(0.5f, 1);
+        rtContent.anchoredPosition = Vector2.zero;
+
+        scrollRect.content = rtContent;
+
+        float yPos = 0f;
+        float contentWidth = 750f;
+
+        // --- SECCIÓN: Ingredientes Requeridos ---
+        yPos = CreateDetailedIngredientSection(contentObj.transform, s,
+            "INGREDIENTES ESENCIALES",
+            "Estos alimentos son fundamentales para este escenario:",
+            s.requiredIngredients,
+            new Color(0.2f, 0.8f, 0.2f),   // color título
+            new Color(0.15f, 0.25f, 0.15f), // color fondo tarjeta
+            new Color(0.3f, 1f, 0.3f),      // color seleccionado
+            new Color(0.5f, 0.5f, 0.5f),    // color no seleccionado
+            yPos, contentWidth);
+
+        yPos -= 15f;
+
+        // --- SECCIÓN: Ingredientes Buenos ---
+        yPos = CreateDetailedIngredientSection(contentObj.transform, s,
+            "INGREDIENTES BENEFICIOSOS",
+            "Estos alimentos aportan beneficios adicionales:",
+            s.goodIngredients,
+            new Color(0.5f, 0.7f, 1f),
+            new Color(0.12f, 0.18f, 0.28f),
+            new Color(0.6f, 0.85f, 1f),
+            new Color(0.4f, 0.4f, 0.5f),
+            yPos, contentWidth);
+
+        yPos -= 15f;
+
+        // --- SECCIÓN: Ingredientes Malos Seleccionados ---
         string[] selectedBad = selectedIngredients.Where(i => s.badIngredients.Contains(i)).ToArray();
         if (selectedBad.Length > 0)
         {
-            yPos -= 10f;
-            GameObject badLabel = new GameObject("FeedBadLabel");
-            badLabel.transform.SetParent(feedContainer.transform, false);
-            TextMeshProUGUI tBad = badLabel.AddComponent<TextMeshProUGUI>();
-            tBad.text = "⚠ INGREDIENTES PERJUDICIALES SELECCIONADOS";
-            tBad.fontSize = 22;
-            tBad.color = new Color(1f, 0.4f, 0.3f);
-            tBad.alignment = TextAlignmentOptions.Center;
-            tBad.fontStyle = FontStyles.Bold;
-            RectTransform rtBad = badLabel.GetComponent<RectTransform>();
-            rtBad.anchorMin = new Vector2(0.5f, 1f);
-            rtBad.anchorMax = new Vector2(0.5f, 1f);
-            rtBad.anchoredPosition = new Vector2(0, yPos);
-            rtBad.sizeDelta = new Vector2(700, 30);
-            yPos -= 30f;
-
-            string badList = string.Join("  •  ", selectedBad.Select(i => i.ToUpper()));
-            GameObject badItems = new GameObject("FeedBadItems");
-            badItems.transform.SetParent(feedContainer.transform, false);
-            TextMeshProUGUI tBadItems = badItems.AddComponent<TextMeshProUGUI>();
-            tBadItems.text = badList;
-            tBadItems.fontSize = 20;
-            tBadItems.color = new Color(1f, 0.6f, 0.5f);
-            tBadItems.alignment = TextAlignmentOptions.Center;
-            RectTransform rtBadItems = badItems.GetComponent<RectTransform>();
-            rtBadItems.anchorMin = new Vector2(0.5f, 1f);
-            rtBadItems.anchorMax = new Vector2(0.5f, 1f);
-            rtBadItems.anchoredPosition = new Vector2(0, yPos);
-            rtBadItems.sizeDelta = new Vector2(700, 30);
-            yPos -= 35f;
+            yPos = CreateDetailedIngredientSection(contentObj.transform, s,
+                "⚠ INGREDIENTES PERJUDICIALES SELECCIONADOS",
+                "¡Estos alimentos son perjudiciales para este escenario!",
+                selectedBad,
+                new Color(1f, 0.4f, 0.3f),
+                new Color(0.3f, 0.12f, 0.1f),
+                new Color(1f, 0.5f, 0.4f),
+                new Color(0.6f, 0.3f, 0.3f),
+                yPos, contentWidth);
+            yPos -= 15f;
         }
 
-        // === SEPARADOR ===
-        CreateSeparator(feedContainer.transform, new Vector2(0, yPos), 650f);
-        yPos -= 15f;
+        // --- SECCIÓN: Ingredientes Malos NO seleccionados (info educativa) ---
+        string[] notSelectedBad = s.badIngredients.Where(i => !selectedIngredients.Contains(i)).ToArray();
+        if (notSelectedBad.Length > 0)
+        {
+            yPos = CreateDetailedIngredientSection(contentObj.transform, s,
+                "EVITASTE CORRECTAMENTE",
+                "¡Bien hecho! Estos alimentos debes evitar por estas razones:",
+                notSelectedBad,
+                new Color(0.6f, 0.9f, 0.5f),
+                new Color(0.15f, 0.2f, 0.12f),
+                new Color(0.7f, 0.9f, 0.6f),
+                new Color(0.5f, 0.6f, 0.4f),
+                yPos, contentWidth);
+            yPos -= 15f;
+        }
+
+        // === SEPARADOR FINAL ===
+        CreateSeparator(contentObj.transform, new Vector2(0, yPos), 650f);
+        yPos -= 20f;
 
         // === CONSEJO NUTRICIONAL ===
         GameObject adviceObj = new GameObject("FeedAdvice");
-        adviceObj.transform.SetParent(feedContainer.transform, false);
+        adviceObj.transform.SetParent(contentObj.transform, false);
         TextMeshProUGUI tAdvice = adviceObj.AddComponent<TextMeshProUGUI>();
         tAdvice.text = GetDetailedAdvice(s, score);
-        tAdvice.fontSize = 22;
+        tAdvice.fontSize = 20;
         tAdvice.color = new Color(0.9f, 0.9f, 0.8f);
         tAdvice.alignment = TextAlignmentOptions.Center;
         tAdvice.enableWordWrapping = true;
         RectTransform rtAdv = adviceObj.GetComponent<RectTransform>();
         rtAdv.anchorMin = new Vector2(0.5f, 1f);
         rtAdv.anchorMax = new Vector2(0.5f, 1f);
-        rtAdv.anchoredPosition = new Vector2(0, yPos - 30f);
-        rtAdv.sizeDelta = new Vector2(750, 80);
+        rtAdv.anchoredPosition = new Vector2(0, yPos - 40f);
+        rtAdv.sizeDelta = new Vector2(contentWidth, 100);
+        yPos -= 140f;
 
-        // === BOTONES ===
-        float btnY = -480f;
-        CreateResultButton(feedContainer.transform, "VOLVER A RESULTADOS", new Vector2(-250, btnY), new Color(0.5f, 0.5f, 0.6f), () => ShowResults());
-        CreateResultButton(feedContainer.transform, "MENÚ", new Vector2(250, btnY), new Color(0.8f, 0.4f, 0.2f), () => ShowMenu());
+        // Ajustar tamaño del content para scroll
+        rtContent.sizeDelta = new Vector2(0, Mathf.Abs(yPos) + 20f);
+
+        // === BOTONES (fuera del scroll) ===
+        float btnY = 40f;
+        CreateFeedbackButton(feedContainer.transform, "VOLVER A RESULTADOS", new Vector2(-250, btnY), new Color(0.5f, 0.5f, 0.6f), () => ShowResults());
+        CreateFeedbackButton(feedContainer.transform, "MENÚ", new Vector2(250, btnY), new Color(0.8f, 0.4f, 0.2f), () => ShowMenu());
     }
 
     // === HELPERS DE FEEDBACK ===
@@ -180,6 +228,175 @@ public partial class NutritionGame2D
         rtSep.anchorMax = new Vector2(0.5f, 1f);
         rtSep.anchoredPosition = pos;
         rtSep.sizeDelta = new Vector2(width, 2);
+    }
+
+    /// <summary>
+    /// Crea una sección detallada de ingredientes con tarjetas individuales
+    /// que muestran el nombre, estado (seleccionado/no) y la explicación nutricional.
+    /// </summary>
+    private float CreateDetailedIngredientSection(Transform parent, Scenario s,
+        string sectionTitle, string sectionSubtitle, string[] ingredients,
+        Color titleColor, Color cardBgColor, Color selectedColor, Color missingColor,
+        float yStart, float contentWidth)
+    {
+        float y = yStart;
+
+        // Título de sección
+        GameObject secLabel = new GameObject($"Feed_{sectionTitle}");
+        secLabel.transform.SetParent(parent, false);
+        TextMeshProUGUI tSec = secLabel.AddComponent<TextMeshProUGUI>();
+        tSec.text = sectionTitle;
+        tSec.fontSize = 22;
+        tSec.color = titleColor;
+        tSec.alignment = TextAlignmentOptions.Center;
+        tSec.fontStyle = FontStyles.Bold;
+        RectTransform rtSec = secLabel.GetComponent<RectTransform>();
+        rtSec.anchorMin = new Vector2(0.5f, 1f);
+        rtSec.anchorMax = new Vector2(0.5f, 1f);
+        rtSec.anchoredPosition = new Vector2(0, y);
+        rtSec.sizeDelta = new Vector2(contentWidth, 30);
+        y -= 28f;
+
+        // Subtítulo
+        GameObject subLabel = new GameObject($"FeedSub_{sectionTitle}");
+        subLabel.transform.SetParent(parent, false);
+        TextMeshProUGUI tSub = subLabel.AddComponent<TextMeshProUGUI>();
+        tSub.text = sectionSubtitle;
+        tSub.fontSize = 16;
+        tSub.color = new Color(0.7f, 0.7f, 0.75f);
+        tSub.alignment = TextAlignmentOptions.Center;
+        tSub.fontStyle = FontStyles.Italic;
+        RectTransform rtSub = subLabel.GetComponent<RectTransform>();
+        rtSub.anchorMin = new Vector2(0.5f, 1f);
+        rtSub.anchorMax = new Vector2(0.5f, 1f);
+        rtSub.anchoredPosition = new Vector2(0, y);
+        rtSub.sizeDelta = new Vector2(contentWidth, 25);
+        y -= 28f;
+
+        // Tarjetas individuales por ingrediente
+        for (int i = 0; i < ingredients.Length; i++)
+        {
+            string ingredient = ingredients[i];
+            bool wasSelected = selectedIngredients.Contains(ingredient);
+
+            // Obtener la razón/beneficio del diccionario
+            string benefit = "";
+            if (s.ingredientBenefits != null && s.ingredientBenefits.ContainsKey(ingredient))
+            {
+                benefit = s.ingredientBenefits[ingredient];
+            }
+
+            float cardHeight = string.IsNullOrEmpty(benefit) ? 35f : 65f;
+
+            // Fondo de tarjeta
+            GameObject card = new GameObject($"Card_{ingredient}");
+            card.transform.SetParent(parent, false);
+            Image cardImg = card.AddComponent<Image>();
+            cardImg.color = cardBgColor;
+            RectTransform rtCard = card.GetComponent<RectTransform>();
+            rtCard.anchorMin = new Vector2(0.5f, 1f);
+            rtCard.anchorMax = new Vector2(0.5f, 1f);
+            rtCard.anchoredPosition = new Vector2(0, y - cardHeight / 2f);
+            rtCard.sizeDelta = new Vector2(contentWidth - 20f, cardHeight);
+
+            // Indicador de selección (barra lateral de color)
+            GameObject indicator = new GameObject("Indicator");
+            indicator.transform.SetParent(card.transform, false);
+            Image indImg = indicator.AddComponent<Image>();
+            indImg.color = wasSelected ? selectedColor : new Color(0.4f, 0.4f, 0.4f, 0.5f);
+            RectTransform rtInd = indicator.GetComponent<RectTransform>();
+            rtInd.anchorMin = new Vector2(0, 0);
+            rtInd.anchorMax = new Vector2(0, 1);
+            rtInd.anchoredPosition = new Vector2(3, 0);
+            rtInd.sizeDelta = new Vector2(6, 0);
+
+            // Nombre del ingrediente con marca
+            GameObject nameObj = new GameObject("IngName");
+            nameObj.transform.SetParent(card.transform, false);
+            TextMeshProUGUI tName = nameObj.AddComponent<TextMeshProUGUI>();
+            string mark = wasSelected ? "✓" : "✗";
+            string nameColorHex = ColorUtility.ToHtmlStringRGB(wasSelected ? selectedColor : missingColor);
+            tName.text = $"<color=#{nameColorHex}>{mark}</color>  <b>{ingredient.ToUpper()}</b>";
+            tName.fontSize = 18;
+            tName.color = wasSelected ? Color.white : new Color(0.65f, 0.65f, 0.65f);
+            tName.alignment = TextAlignmentOptions.MidlineLeft;
+            RectTransform rtName = nameObj.GetComponent<RectTransform>();
+            rtName.anchorMin = new Vector2(0, 0.5f);
+            rtName.anchorMax = new Vector2(0.45f, 1f);
+            rtName.offsetMin = new Vector2(18, 2);
+            rtName.offsetMax = new Vector2(0, -2);
+
+            // Estado (Seleccionado / No seleccionado)
+            GameObject statusObj = new GameObject("IngStatus");
+            statusObj.transform.SetParent(card.transform, false);
+            TextMeshProUGUI tStatus = statusObj.AddComponent<TextMeshProUGUI>();
+            tStatus.text = wasSelected ? "SELECCIONADO" : "NO SELECCIONADO";
+            tStatus.fontSize = 12;
+            tStatus.color = wasSelected ? new Color(0.5f, 1f, 0.5f, 0.8f) : new Color(0.8f, 0.5f, 0.4f, 0.7f);
+            tStatus.alignment = TextAlignmentOptions.MidlineRight;
+            tStatus.fontStyle = FontStyles.Bold;
+            RectTransform rtStatus = statusObj.GetComponent<RectTransform>();
+            rtStatus.anchorMin = new Vector2(0.55f, 0.5f);
+            rtStatus.anchorMax = new Vector2(1f, 1f);
+            rtStatus.offsetMin = new Vector2(0, 2);
+            rtStatus.offsetMax = new Vector2(-12, -2);
+
+            // Razón / Beneficio (debajo del nombre)
+            if (!string.IsNullOrEmpty(benefit))
+            {
+                GameObject reasonObj = new GameObject("IngReason");
+                reasonObj.transform.SetParent(card.transform, false);
+                TextMeshProUGUI tReason = reasonObj.AddComponent<TextMeshProUGUI>();
+                tReason.text = benefit;
+                tReason.fontSize = 14;
+                tReason.color = new Color(0.85f, 0.85f, 0.75f, 0.9f);
+                tReason.alignment = TextAlignmentOptions.MidlineLeft;
+                tReason.enableWordWrapping = true;
+                tReason.fontStyle = FontStyles.Italic;
+                RectTransform rtReason = reasonObj.GetComponent<RectTransform>();
+                rtReason.anchorMin = new Vector2(0, 0);
+                rtReason.anchorMax = new Vector2(1, 0.5f);
+                rtReason.offsetMin = new Vector2(18, 2);
+                rtReason.offsetMax = new Vector2(-12, -2);
+            }
+
+            y -= (cardHeight + 5f);
+        }
+
+        return y;
+    }
+
+    /// <summary>
+    /// Crea un botón para la pantalla de feedback con anchors en la parte inferior.
+    /// </summary>
+    private void CreateFeedbackButton(Transform parent, string label, Vector2 offset, Color bgColor, System.Action onClick)
+    {
+        GameObject btnObj = new GameObject($"FeedBtn_{label}");
+        btnObj.transform.SetParent(parent, false);
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = bgColor;
+
+        Button btn = btnObj.AddComponent<Button>();
+        btn.onClick.AddListener(() => onClick());
+
+        RectTransform rtBtn = btnObj.GetComponent<RectTransform>();
+        rtBtn.anchorMin = new Vector2(0.5f, 0);
+        rtBtn.anchorMax = new Vector2(0.5f, 0);
+        rtBtn.anchoredPosition = offset;
+        rtBtn.sizeDelta = new Vector2(300, 60);
+
+        GameObject txtObj = new GameObject("Text");
+        txtObj.transform.SetParent(btnObj.transform, false);
+        TextMeshProUGUI tmpTxt = txtObj.AddComponent<TextMeshProUGUI>();
+        tmpTxt.text = label;
+        tmpTxt.fontSize = 22;
+        tmpTxt.fontStyle = FontStyles.Bold;
+        tmpTxt.color = Color.white;
+        tmpTxt.alignment = TextAlignmentOptions.Center;
+        RectTransform rtTxt = txtObj.GetComponent<RectTransform>();
+        rtTxt.anchorMin = Vector2.zero;
+        rtTxt.anchorMax = Vector2.one;
+        rtTxt.sizeDelta = Vector2.zero;
     }
 
     private float CreateIngredientSection(Transform parent, string title, string[] ingredients,
