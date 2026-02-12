@@ -92,9 +92,10 @@ public partial class NutritionGame2D
         rtFb.anchoredPosition = new Vector2(0, 0);
         rtFb.sizeDelta = new Vector2(800, 200);
 
-        // BOTONES DE ACCIÓN (Reintentar / Menú)
-        CreateResultButton(resContainer.transform, "REINTENTAR", new Vector2(-200, -350), new Color(0.3f, 0.6f, 1f), () => StartScenario(currentScenarioIndex));
-        CreateResultButton(resContainer.transform, "MENÚ", new Vector2(200, -350), new Color(0.8f, 0.4f, 0.2f), () => ShowMenu());
+        // BOTONES DE ACCIÓN (Reintentar / Menú / Feedback)
+        CreateResultButton(resContainer.transform, "REINTENTAR", new Vector2(-300, -350), new Color(0.3f, 0.6f, 1f), () => StartScenario(currentScenarioIndex));
+        CreateResultButton(resContainer.transform, "MENÚ", new Vector2(0, -350), new Color(0.8f, 0.4f, 0.2f), () => ShowMenu());
+        CreateResultButton(resContainer.transform, "FEEDBACK", new Vector2(300, -350), new Color(0.2f, 0.7f, 0.4f), () => ShowFeedback());
     }
     
     private void CreateResultButton(Transform parent, string label, Vector2 pos, Color c, UnityEngine.Events.UnityAction action)

@@ -53,7 +53,7 @@ public partial class NutritionGame2D : MonoBehaviour
     private GameObject shopkeeper;
     private GameObject currentBackground;
 
-    private enum GamePhase { Intro, Menu, Learning, Shopping, Cooking, Results }
+    private enum GamePhase { Intro, Menu, Learning, Shopping, Cooking, Results, Feedback }
 
     // --- SISTEMA DE AUTO-INICIO (ONE CLICK) ---
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -177,6 +177,7 @@ public partial class NutritionGame2D : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.R)) StartScenario(currentScenarioIndex);
             if (Input.GetKeyDown(KeyCode.M)) ShowMenu();
+            if (Input.GetKeyDown(KeyCode.F)) ShowFeedback();
         }
     }
 
@@ -206,6 +207,7 @@ public partial class NutritionGame2D : MonoBehaviour
             Transform tIntroInstr = hudCanvas.transform.Find("Intro_InstrBG"); if(tIntroInstr) Destroy(tIntroInstr.gameObject);
             
             Transform tResCont = hudCanvas.transform.Find("ResultsContainer"); if(tResCont) Destroy(tResCont.gameObject);
+            Transform tFeedCont = hudCanvas.transform.Find("FeedbackContainer"); if(tFeedCont) Destroy(tFeedCont.gameObject);
             Transform tBtnEnd = hudCanvas.transform.Find("Btn_Cocinar"); if(tBtnEnd) Destroy(tBtnEnd.gameObject);
             Transform tBtnAcc = hudCanvas.transform.Find("Btn_Aceptar"); if(tBtnAcc) Destroy(tBtnAcc.gameObject);
             Transform tCooking = hudCanvas.transform.Find("CookingContainer"); if(tCooking) Destroy(tCooking.gameObject);
